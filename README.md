@@ -1,2 +1,1 @@
-# MSSQLSEC
-Security Audit on MSSQL
+# MSSQLSEC - Security Audit on MSSQL
