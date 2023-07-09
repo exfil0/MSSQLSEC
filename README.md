@@ -384,6 +384,43 @@ WHERE class = 1;
 
 Monitor the creation and deletion of database users to detect unauthorized access or excessive permissions.
 
+# AUDIT TRAIL REVIEW
+
+An audit trail is a record of all activities that occur within a system. Reviewing the audit trail is a crucial part of the MSSQL audit process as it can help identify unauthorized activities or anomalies that might indicate a security issue.
+
+Key components of the audit trail review include:
+
+## SQL Server Audit
+
+SQL Server provides robust auditing capabilities. Ensure that SQL Server Audit is enabled and properly configured to log relevant events such as login success and failure, changes to database schema or security settings, data modification, etc.
+
+To view the server-level audits, use the following command:
+```
+SELECT * 
+FROM sys.server_audits;
+```
+To view the database-level audits, use:
+```
+SELECT * 
+FROM sys.database_audit_specifications;
+```
+
+## Audit Log Review
+
+Regularly review audit logs for unusual activity. This includes login attempts from unusual locations or at odd hours, multiple failed login attempts, changes to security settings, or unexplained data modifications.
+
+## Retention Policy
+
+Ensure that an appropriate audit log retention policy is in place. The retention period should be sufficient to meet both operational needs and compliance requirements.
+
+## Archiving
+
+Older audit logs should be archived for future reference. Consider using automated tools to simplify the archiving process.
+
+## Log Analysis Tools
+
+Consider using automated log analysis tools, which can simplify the process of sorting through large amounts of log data and can help quickly identify suspicious activities.
+
 
 
 [^1]: Templates.
