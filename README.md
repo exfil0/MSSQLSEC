@@ -4,7 +4,7 @@
 |---|---|
 | Status  | In Progress |
 
-MSSQLSC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements. I am dedicated to constantly updating and refining MSSQLSC, adding new features and methodologies based on the latest best practices and standards in the industry. 
+MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements. I am dedicated to constantly updating and refining MSSQLSEC, adding new features and methodologies based on the latest best practices and standards in the industry. 
 
 # TABLE OF CONTENTS
 
@@ -34,13 +34,13 @@ MSSQLSC is a comprehensive toolkit, incorporating advanced tools and methodologi
 
 # AUDIT METHODOLOGY
 
-The audit methodology incorporated in the MSSQLSC toolkit embodies a rigorous and systematic approach, ensuring a comprehensive and thorough review of the MSSQL databases. This adaptable framework begins with a meticulous planning stage, where the precise scope of the audit, including specific databases or operations, is clearly defined. The subsequent data collection stage involves MSSQLSC's advanced tools working seamlessly to gather the necessary data, all while ensuring minimal disruption to the ongoing database operations. This includes a thorough extraction of schemas, table structures, stored procedures, user permissions, and more.
+The audit methodology incorporated in the MSSQLSEC toolkit embodies a rigorous and systematic approach, ensuring a comprehensive and thorough review of the MSSQL databases. This adaptable framework begins with a meticulous planning stage, where the precise scope of the audit, including specific databases or operations, is clearly defined. The subsequent data collection stage involves MSSQLSEC's advanced tools working seamlessly to gather the necessary data, all while ensuring minimal disruption to the ongoing database operations. This includes a thorough extraction of schemas, table structures, stored procedures, user permissions, and more.
 
 Upon successful data collection, a detailed analysis is performed on the gathered data to identify potential security vulnerabilities, performance issues, and any instances of non-compliance with industry standards. The methodology emphasizes the importance of transparent reporting, meticulously crafting detailed reports that not only outline the identified issues but also provide their potential impacts, along with solid recommendations for remediation.
 
-An integral part of this methodology is the review process, an iterative cycle that encourages continuous improvements in database management practices. This process allows for the perpetual refinement and evolution of the toolkit, making MSSQLSC a dynamic auditing solution that continuously adapts to the ever-changing landscape of database security.
+An integral part of this methodology is the review process, an iterative cycle that encourages continuous improvements in database management practices. This process allows for the perpetual refinement and evolution of the toolkit, making MSSQLSEC a dynamic auditing solution that continuously adapts to the ever-changing landscape of database security.
 
-Throughout the entire auditing process, MSSQLSC upholds a strong commitment to data privacy and integrity, ensuring that all sensitive information is handled securely. The adaptive nature of this toolkit ensures that it continually aligns with evolving data privacy standards and best practices in data management.
+Throughout the entire auditing process, MSSQLSEC upholds a strong commitment to data privacy and integrity, ensuring that all sensitive information is handled securely. The adaptive nature of this toolkit ensures that it continually aligns with evolving data privacy standards and best practices in data management.
 
 # SCOPE OF THE AUDIT
 
