@@ -2,6 +2,8 @@
 
 
 
+- [ ] Audit Methodology
+- [ ] Scope of the Audit
 - [ ] Database Configuration Review
 - [ ] Security Measures
 - [ ] Access Control Review
@@ -17,9 +19,7 @@
 
 
 ```
-git status
-git add
-git commit
+MSSQL SCRIPTS AVAILABLE
 ```
 
 [^1]: Appendix Templates.
