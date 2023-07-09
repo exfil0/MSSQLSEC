@@ -327,6 +327,63 @@ FROM sys.database_principals AS DP
 WHERE DP.authentication_type_desc = 'DATABASE';
 ```
 
+# USER ROLES AND PRIVILEGES
+
+The review of user roles and privileges is a critical aspect of any MSSQL audit process. It ensures that users have been assigned the appropriate level of access and permissions necessary to perform their roles, following the principle of least privilege.
+
+## User Role Assignment
+
+All users should be assigned appropriate roles that align with their job responsibilities. You can review the user roles using the following SQL command:
+```
+SELECT DP1.name AS UserName, 
+       DP2.name AS RoleName
+FROM sys.database_role_members DRM
+RIGHT OUTER JOIN sys.database_principals DP1
+    ON DRM.member_principal_id = DP1.principal_id
+LEFT OUTER JOIN sys.database_principals DP2
+    ON DRM.role_principal_id = DP2.principal_id
+WHERE DP1.type = 'S'
+ORDER BY DP1.name;
+```
+
+## Role Permissions
+
+Check the permissions of each role to ensure that they align with what's necessary for that role. You can view the permissions of each role with:
+```
+SELECT DP1.name AS RoleName,
+       DP2.name AS PermissionName,
+       DP2.type AS PermissionType
+FROM sys.database_role_members DRM
+RIGHT OUTER JOIN sys.database_principals DP1
+    ON DRM.member_principal_id = DP1.principal_id
+LEFT OUTER JOIN sys.database_permissions DP2
+    ON DRM.role_principal_id = DP2.grantee_principal_id
+WHERE DP1.type = 'R'
+ORDER BY DP1.name;
+```
+
+## Administrative Privileges
+
+Accounts with elevated privileges such as 'db_owner' and 'sysadmin' should be kept to a minimum and monitored closely. You can check the members of a specific role like 'sysadmin' using the following command:
+```
+EXEC sp_helpsrvrolemember 'sysadmin';
+```
+
+## Object-Level Permissions
+
+Permissions at the object level (tables, views, procedures, functions, etc.) should be reviewed. You can view these permissions with:
+```
+SELECT object_name(major_id) AS Object,
+       USER_NAME(grantee_principal_id) AS Grantee,
+       permission_name
+FROM sys.database_permissions
+WHERE class = 1;
+```
+
+## User Creation and Deletion
+
+Monitor the creation and deletion of database users to detect unauthorized access or excessive permissions.
+
 
 
 [^1]: Templates.
