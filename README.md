@@ -92,7 +92,7 @@ SELECT * FROM sys.dm_os_process_memory;
 
 Examination of the individual database settings such as database compatibility levels, recovery model, Auto-Shrink and Auto-Grow settings, collation settings, and more. These parameters directly impact the database's operational efficiency, data integrity, and recovery capabilities.
 
-Note: Replace 'YourDatabase' with your actual database name.
+Note: Replace 'YourDatabase' with the actual database name.
 
 To check database-level settings:
 ```
@@ -107,7 +107,7 @@ SELECT * FROM sys.databases WHERE name = 'YourDatabase';
 
 Review of the security configurations such as login settings, role permissions, firewall settings, and encryption methods. This assessment ensures that the database is protected against unauthorized access and data breaches.
 
-Note: Replace 'YourDatabase' with your actual database name.
+Note: Replace 'YourDatabase' with the actual database name.
 
 To view all SQL logins and their server role association:
 ```
@@ -150,11 +150,11 @@ The Database Configuration Review is not a one-time task but a continuous part o
 
 # STORED PROCEDURES AND FUNCTIONS
 
-The review of stored procedures and functions forms a critical component of the MSSQL audit process. These encapsulate the logic of your applications and are a common target for SQL injection attacks. Thus, it's important to ensure they're written securely and perform efficiently.
+The review of stored procedures and functions forms a critical component of the MSSQL audit process. These encapsulate the logic of the applications and are a common target for SQL injection attacks. Thus, it's important to ensure they're written securely and perform efficiently.
 
 The audit of stored procedures and functions encompasses the following steps:
 
-Note: Replace 'YourDatabase' with your actual database name.
+Note: Replace 'YourDatabase' with the actual database name.
 
 ## List All Stored Procedures and Functions
 
@@ -189,9 +189,9 @@ Security measures analysis is a critical part of the MSSQL audit process. It inv
 
 This includes checking the server configuration, ensuring it's secured with firewall protection, up-to-date antivirus software, and ensuring the server is kept up-to-date with security patches.
 
-- Use the Windows Defender Firewall with Advanced Security (or the equivalent on your server's operating system) to check the firewall rules.
+- Use the Windows Defender Firewall with Advanced Security (or the equivalent on the server's operating system) to check the firewall rules.
 - Use the antivirus software's control panel to check the status of the antivirus software.
-- Use Windows Update (or the equivalent on your server's operating system) to check for available security updates.
+- Use Windows Update (or the equivalent on the server's operating system) to check for available security updates.
 
 ## Database-Level Security
 
