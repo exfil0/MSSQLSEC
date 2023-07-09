@@ -101,8 +101,8 @@ FROM sys.dm_os_process_memory;
 
 ### Parallel Processing Settings
 
-- Review the max degree of parallelism (MAXDOP) setting to ensure it is optimized for your workload and hardware configuration.
-- Consider adjusting the cost threshold for parallelism (CTFP) to fine-tune query parallelism.
+Review the max degree of parallelism (MAXDOP) setting to ensure it is optimized for your workload and hardware configuration.
+Consider adjusting the cost threshold for parallelism (CTFP) to fine-tune query parallelism.
 ```
 EXEC sp_configure 'max degree of parallelism';
 EXEC sp_configure 'cost threshold for parallelism';
@@ -110,12 +110,12 @@ EXEC sp_configure 'cost threshold for parallelism';
 
 ### Network Configuration
 
-- Review network-related settings such as network packet size and network configuration to optimize network performance.
-- Validate network protocols enabled on the SQL Server and ensure they align with your security requirements.
+Review network-related settings such as network packet size and network configuration to optimize network performance.
+Validate network protocols enabled on the SQL Server and ensure they align with your security requirements.
 
 ### Other Server Parameters
 
-- Review and assess other server parameters, such as maximum number of connections, query wait time, backup compression settings, and any other settings relevant to your environment.
+Review and assess other server parameters, such as maximum number of connections, query wait time, backup compression settings, and any other settings relevant to your environment.
 ```
 EXEC sp_configure 'max user connections';
 EXEC sp_configure 'query wait (s)';
@@ -130,7 +130,7 @@ Note: Replace 'YourDatabase' with the actual database name.
 
 ### Database Files
 
-- Retrieve information about the database files, including file names, file sizes, growth settings, and file locations.
+Retrieve information about the database files, including file names, file sizes, growth settings, and file locations.
 ```
 SELECT *
 FROM YourDatabase.sys.database_files;
@@ -138,7 +138,7 @@ FROM YourDatabase.sys.database_files;
 
 ### Database-Level Settings
 
-- Retrieve and review the database-level settings for a specific database, including compatibility level, recovery model, auto-shrink and auto-grow settings, collation settings, and other relevant parameters.
+Retrieve and review the database-level settings for a specific database, including compatibility level, recovery model, auto-shrink and auto-grow settings, collation settings, and other relevant parameters.
 ```
 SELECT *
 FROM sys.databases
@@ -176,6 +176,17 @@ To list all database users and associated roles:
 USE YourDatabase;
 EXEC sp_helprole;
 ```
+
+### Permissions and Access Control
+
+Review the permissions assigned to each role and user within the database. Ensure that the principle of least privilege is followed, granting only the necessary permissions required for each role or user.
+Firewall and Network Security:
+
+Evaluate the firewall settings and network security measures implemented to protect the MSSQL server. Verify that appropriate firewall rules are in place, restricting access to the server based on trusted IP addresses or network ranges.
+
+### Encryption and Data Protection
+
+Review the encryption methods employed to protect sensitive data. Evaluate the use of transparent data encryption (TDE) or column-level encryption for securing sensitive information.
 
 ## Maintenance Plans
 
