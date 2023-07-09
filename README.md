@@ -181,5 +181,55 @@ Stored procedures and functions should also be analyzed for performance issues. 
 
 Each stored procedure and function should be well-documented, making it easier for any developer or DBA to understand their purpose, inputs, outputs, and any potential side effects.
 
+# SECURITY MEASURES ANALYSIS
+
+Security measures analysis is a critical part of the MSSQL audit process. It involves examining the different security mechanisms in place to protect the data stored in the database, mitigate threats, and ensure compliance with regulations. Key components of this analysis:
+
+## Server-Level Security
+
+This includes checking the server configuration, ensuring it's secured with firewall protection, up-to-date antivirus software, and ensuring the server is kept up-to-date with security patches.
+
+- Use the Windows Defender Firewall with Advanced Security (or the equivalent on your server's operating system) to check the firewall rules.
+- Use the antivirus software's control panel to check the status of the antivirus software.
+- Use Windows Update (or the equivalent on your server's operating system) to check for available security updates.
+
+## Database-Level Security
+
+This involves checking database permissions to ensure that users and roles have been granted the minimum required permissions based on the principle of least privilege.
+```
+SELECT pr.principal_id, pr.name, pr.type_desc, 
+       pe.permission_name, pe.state_desc
+FROM sys.database_permissions pe
+INNER JOIN sys.database_principals pr 
+ON pe.grantee_principal_id = pr.principal_id;
+```
+
+## Encryption
+
+Encryption of data at rest and in transit is important for securing sensitive data. For data at rest, check if Transparent Data Encryption (TDE) is enabled:
+```
+SELECT DB_Name(database_id) as DatabaseName, 
+       encryption_state 
+FROM sys.dm_database_encryption_keys;
+```
+For data in transit, check if the Force Encryption option is enabled on the SQL Server's network protocol (can be checked in SQL Server Configuration Manager).
+
+## SQL Server Authentication Mode
+
+SQL Server supports two authentication modes: Windows Authentication Mode (recommended due to its integration with Windows security features) and SQL Server and Windows Authentication Mode. This can be checked by:
+```
+EXEC xp_loginconfig 'login mode';
+```
+
+## Audit Logging
+
+Audit logging helps in tracking access and changes made to the database. Ensure that auditing is enabled and properly configured.
+
+## Data Masking and Row-Level Security
+
+Check if sensitive data is being protected using features like Dynamic Data Masking and Row-Level Security.
+
+Through this analysis, we will ensure that the MSSQL database has robust security measures in place.
+
 [^1]: Templates.
 [^2]: Important Links.
