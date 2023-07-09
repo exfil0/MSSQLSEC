@@ -1,4 +1,4 @@
-<img src="https://github.com/exfil0/MSSQLSEC/blob/main/Asset%201.png?raw=true" width="250">
+<img src="https://github.com/exfil0/MSSQLSEC/blob/main/Asset%201.png" width="250">
 
 # MSSQL SECURITY CHECK FRAMEWORK
 
