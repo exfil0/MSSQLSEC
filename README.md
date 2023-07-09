@@ -180,7 +180,8 @@ EXEC sp_helprole;
 ### Permissions and Access Control
 
 Review the permissions assigned to each role and user within the database. Ensure that the principle of least privilege is followed, granting only the necessary permissions required for each role or user.
-Firewall and Network Security:
+
+### Firewall and Network Security:
 
 Evaluate the firewall settings and network security measures implemented to protect the MSSQL server. Verify that appropriate firewall rules are in place, restricting access to the server based on trusted IP addresses or network ranges.
 
