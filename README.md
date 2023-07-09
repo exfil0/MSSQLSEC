@@ -1,4 +1,4 @@
-# MSSQL SECURITY CHECK
+# MSSQL SECURITY CHECK FRAMEWORK
 
 MSSQLSC is a comprehensive toolkit, incorporating advanced tools and methodologies, designed for performing in-depth audits on MSSQL databases.
 
