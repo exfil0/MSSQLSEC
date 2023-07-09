@@ -2,7 +2,8 @@
 
 MSSQLSC is a set of advanced tools and methodologies to perform a comprehensive audit on MSSQL.
 
-# Table of Contents
+# TABLE OF CONTENT
+
 1. [Audit Methodology](#audit-methodology)
 2. [Scope of the Audit](#scope-of-the-audit)
 3. [Database Configuration Review](#database-configuration-review)
@@ -18,6 +19,7 @@ MSSQLSC is a set of advanced tools and methodologies to perform a comprehensive 
 13. [Appendix](#appendix)
 14. [Approval and Signoff](#approval-and-signoff)
 
+## CONTENTS
 - [ ] Appendix[^1]
 - [ ] Approval and Signoff[^2]
 
