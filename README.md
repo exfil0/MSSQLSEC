@@ -1,5 +1,9 @@
 # MSSQL SECURITY CHECK FRAMEWORK
 
+| Version | 1.1 |
+|---|---|
+| Status  | In Progress |
+
 MSSQLSC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements. I am dedicated to constantly updating and refining MSSQLSC, adding new features and methodologies based on the latest best practices and standards in the industry. 
 
 # TABLE OF CONTENTS
@@ -461,6 +465,205 @@ Backups should be secured to prevent unauthorized access. This includes encrypti
 ## Log Shipping
 
 For critical systems, consider using techniques like log shipping, which can minimize downtime and data loss by maintaining a backup server updated with transaction log backups from the primary server.
+
+
+# PATCH MANAGEMENT REVIEW
+
+Regular patch management is vital for the security and stability of any MSSQL environment. By ensuring that software is up-to-date with the latest patches, you can prevent potential vulnerabilities from being exploited and keep the systems running smoothly.
+
+## Patch Availability
+
+Regularly check for available updates from Microsoft, including both major version updates and minor patches or hotfixes. You can do this by subscribing to Microsoft's security bulletins or using tools like Microsoft's Windows Server Update Services (WSUS).
+
+## Patch Testing
+
+Prior to applying any patch on the production system, thoroughly test it in a non-production environment to assess its impact and detect any potential issues or conflicts.
+
+## Patch Deployment
+
+Use automated deployment tools to apply patches across all relevant systems. This helps ensure that all systems are updated consistently and reduces the time and effort required for patching.
+
+## Recovery Strategy
+
+Have a clear recovery strategy in case the patching process causes issues or system instability. This could involve backing up the system before applying patches, or having a rollback plan to undo the patch.
+
+## Patch Documentation
+
+Document all applied patches, including the patch details, the systems they were applied to, the date of application, and any issues encountered during the process. This can help track the system's update history and can be useful in troubleshooting.
+
+## Regular Review
+
+Regularly review the patch management process to identify and improve any inefficiencies. This includes staying updated with the latest best practices in patch management.
+
+Maintaining an effective patch management process is crucial for securing the MSSQL environment against potential security threats and ensuring the stability and performance of your systems.
+
+# INCIDENT RESPONSE REVIEW
+
+An Incident Response Plan (IRP) is a detailed guide that helps organizations respond effectively to security incidents or breaches. Reviewing your incident response plan is critical to ensure the organization is adequately prepared to handle potential security incidents in the MSSQL environment.
+
+
+## Plan Clarity
+
+The plan should clearly outline the steps to take during an incident, including identifying the incident, containing it, eradicating the threat, and recovering from it. Each step should be detailed enough to provide actionable guidance, even under stressful conditions.
+
+## Roles and Responsibilities
+
+The plan should clearly define roles and responsibilities for everyone involved in the incident response process. This includes first responders, IT teams, communication teams, and upper management.
+
+## Communication Plan
+
+The IRP should include a clear communication plan, detailing who needs to be informed about an incident, when, and how. This includes both internal and external communications.
+
+## Incident Classification
+
+The plan should outline different categories of incidents and appropriate responses for each. Not all incidents require the same response, so a well-defined classification system is essential.
+
+## Third-Party Contacts
+
+The plan should list contact information for any relevant third parties. This could include law enforcement agencies, external cybersecurity experts, legal counsel, and public relations firms.
+
+## Testing and Updates
+
+The IRP should be regularly tested through drills and exercises to ensure it works as expected. Any deficiencies identified during these tests should be addressed, and the plan should be updated accordingly.
+
+## Post-Incident Review
+
+After any incident, a post-incident review should be conducted to identify any lessons learned and make necessary updates to the plan.
+
+Having an up-to-date and thoroughly tested Incident Response Plan is crucial for minimizing the impact of any security incidents and ensuring a swift return to normal operations.
+
+# APPLICATION SECURITY REVIEW
+
+Application security is crucial in safeguarding the data processed or stored within the MSSQL databases. An Application Security Review ensures that any applications interacting with the database are secure and do not introduce any vulnerabilities.
+
+## Secure Coding Practices
+
+Check if secure coding practices were adhered to during application development. This includes things like input validation, output encoding, error handling, and secure session management.
+
+## Static and Dynamic Code Analysis
+
+Employ both Static Application Security Testing (SAST) and Dynamic Application Security Testing (DAST) tools to uncover potential vulnerabilities within the application code.
+
+## Dependency Review
+
+Review third-party libraries and dependencies used by the application. These should be kept up-to-date and checked for known vulnerabilities, using tools like a Software Composition Analysis (SCA).
+
+## Access Control
+
+Ensure that the application implements proper access controls, enforcing the principle of least privilege. This includes controls over which users can access certain data and perform specific actions within the application.
+
+## Encryption
+
+Sensitive data should be encrypted both at rest and in transit. Review encryption algorithms, key management processes, and the proper use of SSL/TLS for data transmission.
+
+## Error Handling
+
+The application should not disclose sensitive information in error messages or logs. Review the error handling methods used in the application to ensure they are secure.
+
+## Authentication and Session Management
+
+Review how the application handles user authentication and session management. This includes checking for strong password policies, secure storage of user credentials, and appropriate session timeout settings.
+
+## Initiative
+
+The application security review should be an ongoing process, performed regularly and each time the application is updated. The focus should be not only on identifying vulnerabilities but also on ensuring that appropriate measures are taken to address these vulnerabilities in a timely manner.
+
+# PERFORMANCE REVIEW
+
+A performance review ensures that your MSSQL server is running optimally, and identifies any bottlenecks or issues that could be slowing down your database operations. It plays a crucial role in maintaining the efficiency and reliability of the MSSQL environment.
+
+## Performance Metrics
+
+Monitor and evaluate key performance metrics such as CPU usage, memory usage, disk I/O, network traffic, and database transaction times. You can use built-in tools like Performance Monitor or SQL Server Management Studio (SSMS), or third-party monitoring solutions.
+
+## SQL Server Profiler
+
+Use SQL Server Profiler to trace and monitor events in your SQL Server. This tool can help identify slow queries, long-running transactions, and other performance issues.
+
+## Database Indexing
+
+Regularly review your database indexing strategy. Poor indexing can lead to slow query performance, while over-indexing can impact write operations. Use Database Engine Tuning Advisor to analyze your database's usage and recommend an optimal indexing strategy.
+```
+SELECT OBJECT_NAME(s.object_id) AS object_name, 
+    i.name AS index_name, 
+    user_updates AS total_writes, 
+    user_seeks + user_scans + user_lookups AS total_reads,
+    user_updates - (user_seeks + user_scans + user_lookups) AS difference
+FROM sys.dm_db_index_usage_stats AS s
+INNER JOIN sys.indexes AS i
+ON s.object_id = i.object_id
+WHERE OBJECTPROPERTY(s.object_id,'IsUserTable') = 1
+AND s.index_id = i.index_id
+ORDER BY difference DESC;
+```
+
+## Query Optimization
+
+Review the queries running on your SQL Server for optimization opportunities. The SQL Server Query Store can provide insights on query performance, helping you identify problematic queries that need to be optimized.
+
+## Resource Allocation
+
+Check if the SQL Server is allocated sufficient resources (CPU, memory, disk space) to handle its workload efficiently. Adjust as necessary based on your performance metrics.
+
+## Database Maintenance
+
+Regular database maintenance, such as updating statistics, cleaning up old data, and defragmenting indexes, can help improve performance.
+
+# COMPLIANCE VERIFICATION
+
+Compliance verification ensures that the MSSQL server adheres to necessary regulations and standards, depending on the nature of your business and the kind of data you handle. This process helps to mitigate risks and uphold the trust and confidence of stakeholders.
+
+## Data Protection Regulations
+
+Depending on your jurisdiction and the nature of your data, you may need to comply with data protection and privacy regulations such as PoPIA, GDPR, HIPAA, or CCPA. Review your data handling practices, encryption methods, access controls, and more to ensure compliance with these regulations.
+
+## Security Standards
+
+Standards like ISO 27001, NIST, or CIS provide guidelines for securing your IT infrastructure. Review your security measures against these standards to identify any gaps in your security posture.
+
+## Industry-specific Standards
+
+Some industries have specific compliance requirements, such as PCI DSS for businesses that handle credit card transactions. Ensure that your MSSQL server complies with any industry-specific standards applicable to your business.
+
+## Audit Trails
+
+Regulations often require maintaining audit trails for specific activities. Review your audit logs to ensure they capture necessary information and are stored securely for the required period.
+
+## Data Retention Policies
+
+Review your data retention policies and procedures to ensure they comply with any regulatory requirements. This includes the deletion of data once the retention period expires.
+
+## Incident Response Plan
+
+Compliance often requires a documented and tested incident response plan. Review your plan to ensure it complies with these requirements.
+
+## Training and Awareness
+
+Ensure all users and administrators are aware of compliance requirements and their roles in ensuring compliance. This could involve regular training sessions or briefings.
+
+# REPORTING AND RECOMMANDATIONS
+
+The report and recommendations stage is a critical step in the MSSQL audit process. Here, all the findings from the previous stages are compiled, analyzed, and presented in an organized manner. This process assists in understanding the state of the system and facilitates decision-making for future actions.
+
+## Summary of Findings
+
+Begin with a summary of what was found during the audit. This includes the state of the MSSQL server, any vulnerabilities or performance issues identified, any non-compliance with regulations, and any other significant findings.
+
+## Detailed Analysis
+
+After the summary, provide a detailed analysis of each finding. This includes the implications of the issue, its severity, and the potential risks it poses to the organization.
+
+## Recommendations
+
+For each issue identified, provide recommendations on how to address it. These should be actionable, tailored to your organization, and prioritized based on the risk and impact of each issue.
+
+## Future Considerations
+
+Identify areas for future focus or improvement. This might include areas that were outside the scope of the current audit but could benefit from attention in future audits, or emerging threats and trends that your organization should be aware of.
+
+## Appendices
+
+Include any relevant supplementary information in an appendix. This might include detailed logs, configurations, or additional data supporting your findings.
 
 
 [^1]: Templates.
