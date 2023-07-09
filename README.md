@@ -50,6 +50,15 @@ The Database Configuration Review forms an integral part of the MSSQL audit. Thi
 
 This includes review of the server settings like memory allocation, parallel processing settings, network configuration, and other server parameters that influence the overall performance and stability of the database server.
 
+To check server-level configuration values:
+```
+EXEC sp_configure;
+```
+To check memory usage:
+```
+SELECT * FROM sys.dm_os_process_memory;
+```
+
 ## Database Settings
 
 Examination of the individual database settings such as database compatibility levels, recovery model, Auto-Shrink and Auto-Grow settings, collation settings, and more. These parameters directly impact the database's operational efficiency, data integrity, and recovery capabilities.
@@ -74,11 +83,6 @@ Review of high availability (HA) and disaster recovery (DR) settings such as Alw
 
 The Database Configuration Review is not a one-time task but a continuous part of the database audit process. Regular monitoring and reviewing of the database configuration play a crucial role in maintaining the health and performance of the database system.
 
-
-
-```
-MSSQL SCRIPTS AVAILABLE
-```
 
 
 
