@@ -40,7 +40,36 @@ Throughout the entire auditing process, MSSQLSC upholds a strong commitment to d
 
 # SCOPE OF THE AUDIT
 
-The scope of the audit defines the boundaries and the specific areas of the MSSQL databases that will be subject to examination during the audit process. This includes, but is not limited to, the evaluation of specific databases, tables, stored procedures, user roles, security measures, access controls, and the database's overall configuration. It also involves reviewing the database's backup and recovery procedures, patch management practices, incident response plans, application security, and performance. The scope is determined based on various factors such as business needs, compliance requirements, and risk assessments. Establishing a clear and comprehensive scope is a critical step in the audit process. It ensures that all essential aspects of the database environment are thoroughly audited, potential vulnerabilities are identified, and the necessary recommendations are made to improve security, efficiency, and overall database performance. 
+The scope of the audit defines the boundaries and the specific areas of the MSSQL databases that will be subject to examination during the audit process. This includes, but is not limited to, the evaluation of specific databases, tables, stored procedures, user roles, security measures, access controls, and the database's overall configuration. It also involves reviewing the database's backup and recovery procedures, patch management practices, incident response plans, application security, and performance. The scope is determined based on various factors such as business needs, compliance requirements, and risk assessments. Establishing a clear and comprehensive scope is a critical step in the audit process. It ensures that all essential aspects of the database environment are thoroughly audited, potential vulnerabilities are identified, and the necessary recommendations are made to improve security, efficiency, and overall database performance.
+
+As part of the initial audit phase, identifying the database is an essential step.
+
+Server Name and SQL Server Instance Name:
+```
+SELECT SERVERPROPERTY('MachineName') AS ServerName,
+       SERVERPROPERTY('InstanceName') AS InstanceName;
+```
+SQL Server Version, Edition, and Engine Edition:
+```
+SELECT SERVERPROPERTY('ProductVersion') AS SQLServerVersion, 
+       SERVERPROPERTY('ProductLevel') AS SQLServerLevel,
+       SERVERPROPERTY('Edition') AS SQLServerEdition,
+       SERVERPROPERTY('EngineEdition') AS SQLEngineEdition;
+```
+Operating System Information:
+```
+SELECT SERVERPROPERTY('IsClustered') AS IsClustered,
+       SERVERPROPERTY('IsFullTextInstalled') AS IsFullTextInstalled,
+       SERVERPROPERTY('IsIntegratedSecurityOnly') AS IsIntegratedSecurityOnly,
+       SERVERPROPERTY('IsSingleUser') AS IsSingleUser,
+       SERVERPROPERTY('OSVersion') AS OSVersion;
+```
+ 
+Regarding the IP address and MAC address, these are generally part of the server infrastructure details and may not be directly queried from SQL Server. They can be found using system-level commands or by checking the network configuration in the operating system where SQL Server is running.
+
+For Windows, you can use `ipconfig /all` command in command prompt to get IP and MAC addresses.
+
+For Linux, you can use `ifconfig` or `ip addr` to get the network configuration details.
 
 # DATABASE CONFIGURATION REVIEW
 
