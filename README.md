@@ -83,15 +83,7 @@ The Database Configuration Review forms an integral part of the MSSQL audit. Thi
 
 The server configuration review involves examining the settings and parameters that influence the performance and stability of the database server. This includes analyzing memory allocation, parallel processing settings, network configuration, and other server-level parameters.
 
-
-
-
-To check server-level configuration values:
-```
-EXEC sp_configure;
-```
-
-## Memory Configuration
+### Memory Configuration
 
 - Check the maximum server memory setting to ensure it is appropriately configured for your system's resources and workload.
 - Review the min server memory setting to ensure it is set at an appropriate value to avoid excessive memory allocation to SQL Server.
@@ -105,7 +97,7 @@ SELECT *
 FROM sys.dm_os_process_memory;
 ```
 
-## Parallel Processing Settings
+### Parallel Processing Settings
 
 - Review the max degree of parallelism (MAXDOP) setting to ensure it is optimized for your workload and hardware configuration.
 - Consider adjusting the cost threshold for parallelism (CTFP) to fine-tune query parallelism.
@@ -114,12 +106,12 @@ EXEC sp_configure 'max degree of parallelism';
 EXEC sp_configure 'cost threshold for parallelism';
 ```
 
-## Network Configuration
+### Network Configuration
 
 - Review network-related settings such as network packet size and network configuration to optimize network performance.
 - Validate network protocols enabled on the SQL Server and ensure they align with your security requirements.
 
-## Other Server Parameters
+### Other Server Parameters
 
 - Review and assess other server parameters, such as maximum number of connections, query wait time, backup compression settings, and any other settings relevant to your environment.
 ```
@@ -130,18 +122,42 @@ EXEC sp_configure 'backup compression default';
 
 ## Database Settings
 
-Examination of the individual database settings such as database compatibility levels, recovery model, Auto-Shrink and Auto-Grow settings, collation settings, and more. These parameters directly impact the database's operational efficiency, data integrity, and recovery capabilities.
+The database settings review focuses on analyzing individual database settings that directly impact the operational efficiency, data integrity, and recovery capabilities of each database. This includes examining parameters such as database compatibility levels, recovery models, Auto-Shrink and Auto-Grow settings, collation settings, and more.
 
 Note: Replace 'YourDatabase' with the actual database name.
 
-To check database-level settings:
+### Database Files
+
+- Retrieve information about the database files, including file names, file sizes, growth settings, and file locations.
 ```
-SELECT * FROM YourDatabase.sys.database_files;
+SELECT *
+FROM YourDatabase.sys.database_files;
 ```
-To check database compatibility level, recovery model, and other settings:
+
+### Database-Level Settings
+
+- Retrieve and review the database-level settings for a specific database, including compatibility level, recovery model, auto-shrink and auto-grow settings, collation settings, and other relevant parameters.
 ```
-SELECT * FROM sys.databases WHERE name = 'YourDatabase';
+SELECT *
+FROM sys.databases
+WHERE name = 'YourDatabase';
 ```
+
+### Compatibility Level
+
+Verify the compatibility level of the database to ensure it aligns with the version of SQL Server being used. The compatibility level influences the query optimization and behavior of certain features.
+
+### Recovery Model
+
+Verify the recovery model set for the database, such as Full, Simple, or Bulk-Logged. Review the recovery model to ensure it matches the business requirements for data recoverability and point-in-time restores.
+
+### Auto-Shrink and Auto-Grow Settings
+
+Evaluate the auto-shrink and auto-grow settings of the database. Auto-shrink can impact performance by causing excessive fragmentation, while auto-grow should be configured appropriately to accommodate data growth without causing performance issues.
+
+### Collation Settings
+
+Verify the collation settings for the database. Collation determines the sorting rules and character encoding for the data stored in the database. Ensure the collation settings align with the requirements of your application and data.
 
 ## Security Configuration
 
