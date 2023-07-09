@@ -92,6 +92,8 @@ SELECT * FROM sys.dm_os_process_memory;
 
 Examination of the individual database settings such as database compatibility levels, recovery model, Auto-Shrink and Auto-Grow settings, collation settings, and more. These parameters directly impact the database's operational efficiency, data integrity, and recovery capabilities.
 
+Note: Replace 'YourDatabase' with your actual database name.
+
 To check database-level settings:
 ```
 SELECT * FROM YourDatabase.sys.database_files;
@@ -104,6 +106,8 @@ SELECT * FROM sys.databases WHERE name = 'YourDatabase';
 ## Security Configuration
 
 Review of the security configurations such as login settings, role permissions, firewall settings, and encryption methods. This assessment ensures that the database is protected against unauthorized access and data breaches.
+
+Note: Replace 'YourDatabase' with your actual database name.
 
 To view all SQL logins and their server role association:
 ```
