@@ -1,5 +1,7 @@
 # MSSQLSC - Security Audit on MSSQL
 
+A set of advanced tools and methodologies to perform a comprehensive audit on MSSQL.
+
 # Table of Contents
 1. [Audit Methodology](#audit-methodology)
 2. [Scope of the Audit](#scope-of-the-audit)
@@ -19,10 +21,18 @@
 - [ ] Appendix[^1]
 - [ ] Approval and Signoff[^2]
 
+# AUDIT METHODOLOGY
+
+
+
 
 ```
 MSSQL SCRIPTS AVAILABLE
 ```
+
+
+
+
 
 [^1]: Appendix Templates.
 [^2]: Reports and Cycles.
