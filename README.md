@@ -87,13 +87,13 @@ The server configuration review involves examining the settings and parameters t
 
 ### Memory Configuration
 
-- Check the maximum server memory setting to ensure it is appropriately configured for your system's resources and workload.
-- Review the min server memory setting to ensure it is set at an appropriate value to avoid excessive memory allocation to SQL Server.
+Check the maximum server memory setting to ensure it is appropriately configured for your system's resources and workload.
+Review the min server memory setting to ensure it is set at an appropriate value to avoid excessive memory allocation to SQL Server.
 ```
 EXEC sp_configure 'max server memory (MB)';
 EXEC sp_configure 'min server memory (MB)';
 ```
-- Monitor memory usage through the following dynamic management view to identify any abnormal memory consumption:
+Monitor memory usage through the following dynamic management view to identify any abnormal memory consumption:
 ```
 SELECT *
 FROM sys.dm_os_process_memory;
