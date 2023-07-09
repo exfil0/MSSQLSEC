@@ -92,21 +92,53 @@ SELECT * FROM sys.dm_os_process_memory;
 
 Examination of the individual database settings such as database compatibility levels, recovery model, Auto-Shrink and Auto-Grow settings, collation settings, and more. These parameters directly impact the database's operational efficiency, data integrity, and recovery capabilities.
 
+To check database-level settings:
+```
+SELECT * FROM YourDatabase.sys.database_files;
+```
+To check database compatibility level, recovery model, and other settings:
+```
+SELECT * FROM sys.databases WHERE name = 'YourDatabase';
+```
+
 ## Security Configuration
 
 Review of the security configurations such as login settings, role permissions, firewall settings, and encryption methods. This assessment ensures that the database is protected against unauthorized access and data breaches.
+
+To view all SQL logins and their server role association:
+```
+EXEC sp_helpsrvrolemember;
+```
+To list all database users and associated roles:
+```
+USE YourDatabase;
+EXEC sp_helprole;
+```
 
 ## Maintenance Plans
 
 Assessment of the scheduled maintenance plans including index maintenance, statistics updates, integrity checks, and backup routines. This ensures the optimal performance and reliability of the database.
 
+Maintenance plans can be reviewed and configured in the SQL Server Management Studio (SSMS) under Management > Maintenance Plans.
+
 ## System Health Checks
 
 Regular system health checks including the review of system logs, SQL Server error logs, and database error logs to identify any recurring issues or anomalies that might indicate a problem.
 
+To check SQL Server logs:
+```
+EXEC xp_readerrorlog;
+```
+
 ## High Availability and Disaster Recovery Settings
 
 Review of high availability (HA) and disaster recovery (DR) settings such as AlwaysOn availability groups, database mirroring, log shipping, etc. This ensures business continuity and data availability in case of any unforeseen incidents.
+
+For AlwaysOn availability groups, run the following:
+```
+SELECT * FROM sys.dm_hadr_availability_group_states;
+SELECT * FROM sys.dm_hadr_availability_replica_states;
+```
 
 ## Initiative
 
