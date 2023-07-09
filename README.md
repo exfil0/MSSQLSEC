@@ -1,3 +1,5 @@
+<img src="[URL of the logo](https://github.com/exfil0/MSSQLSEC/blob/main/Asset%201.png?raw=true)" width="250">
+
 # MSSQL SECURITY CHECK FRAMEWORK
 
 | Version | 1.1 |
