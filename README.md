@@ -148,10 +148,38 @@ SELECT * FROM sys.dm_hadr_availability_replica_states;
 
 The Database Configuration Review is not a one-time task but a continuous part of the database audit process. Regular monitoring and reviewing of the database configuration play a crucial role in maintaining the health and performance of the database system.
 
+# STORED PROCEDURES AND FUNCTIONS
 
+The review of stored procedures and functions forms a critical component of the MSSQL audit process. These encapsulate the logic of your applications and are a common target for SQL injection attacks. Thus, it's important to ensure they're written securely and perform efficiently.
 
+The audit of stored procedures and functions encompasses the following steps:
 
+Note: Replace 'YourDatabase' with your actual database name.
 
+## List All Stored Procedures and Functions
+
+First, it's important to retrieve a list of all stored procedures and functions. This can be done with the following SQL commands:
+```
+SELECT name, type_desc 
+FROM YourDatabase.sys.procedures;
+
+SELECT name, type_desc 
+FROM YourDatabase.sys.objects 
+WHERE type_desc LIKE '%FUNCTION%';
+```
+Each stored procedure and function should be individually reviewed for security vulnerabilities. This includes checking for:
+
+- Dynamic SQL that could potentially be exploited for SQL injection attacks.
+- Excessive permissions that may violate the principle of least privilege.
+- Direct access to tables, when access should be restricted to specific views.
+
+Stored procedures and functions should also be analyzed for performance issues. This could involve checking for:
+
+- Unused or inefficient indexes.
+- Potential blocking issues.
+- Inefficient queries that could be rewritten for better performance.
+
+Each stored procedure and function should be well-documented, making it easier for any developer or DBA to understand their purpose, inputs, outputs, and any potential side effects.
 
 [^1]: Templates.
 [^2]: Important Links.
