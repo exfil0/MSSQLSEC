@@ -81,15 +81,51 @@ The Database Configuration Review forms an integral part of the MSSQL audit. Thi
 
 ## Server Configuration
 
-This includes review of the server settings like memory allocation, parallel processing settings, network configuration, and other server parameters that influence the overall performance and stability of the database server.
+The server configuration review involves examining the settings and parameters that influence the performance and stability of the database server. This includes analyzing memory allocation, parallel processing settings, network configuration, and other server-level parameters.
+
+
+
 
 To check server-level configuration values:
 ```
 EXEC sp_configure;
 ```
-To check memory usage:
+
+## Memory Configuration
+
+- Check the maximum server memory setting to ensure it is appropriately configured for your system's resources and workload.
+- Review the min server memory setting to ensure it is set at an appropriate value to avoid excessive memory allocation to SQL Server.
 ```
-SELECT * FROM sys.dm_os_process_memory;
+EXEC sp_configure 'max server memory (MB)';
+EXEC sp_configure 'min server memory (MB)';
+```
+- Monitor memory usage through the following dynamic management view to identify any abnormal memory consumption:
+```
+SELECT *
+FROM sys.dm_os_process_memory;
+```
+
+## Parallel Processing Settings
+
+- Review the max degree of parallelism (MAXDOP) setting to ensure it is optimized for your workload and hardware configuration.
+- Consider adjusting the cost threshold for parallelism (CTFP) to fine-tune query parallelism.
+```
+EXEC sp_configure 'max degree of parallelism';
+EXEC sp_configure 'cost threshold for parallelism';
+```
+
+## Network Configuration
+
+- Review network-related settings such as network packet size and network configuration to optimize network performance.
+- Validate network protocols enabled on the SQL Server and ensure they align with your security requirements.
+
+## Other Server Parameters
+
+- Review and assess other server parameters, such as maximum number of connections, query wait time, backup compression settings, and any other settings relevant to your environment.
+```
+EXEC sp_configure 'max user connections';
+EXEC sp_configure 'query wait (s)';
+EXEC sp_configure 'backup compression default';
 ```
 
 ## Database Settings
