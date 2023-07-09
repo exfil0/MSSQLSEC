@@ -231,5 +231,59 @@ Check if sensitive data is being protected using features like Dynamic Data Mask
 
 Through this analysis, we will ensure that the MSSQL database has robust security measures in place.
 
+# ACCESS CONTROL REVIEW
+
+Access control is a key part of database security, ensuring that only authorized users have access to the data they need to perform their roles. A review of access controls should be an essential part of your MSSQL audit process, including the following aspects:
+
+## User Accounts
+
+A list of all database users, including system administrators, and their respective roles and permissions should be compiled and reviewed. This can be done using the following command:
+```
+SELECT DP1.name AS UserName, 
+       DP2.name AS RoleName
+FROM sys.database_role_members DRM
+RIGHT OUTER JOIN sys.database_principals DP1
+    ON DRM.member_principal_id = DP1.principal_id
+LEFT OUTER JOIN sys.database_principals DP2
+    ON DRM.role_principal_id = DP2.principal_id
+WHERE DP1.type = 'S'
+ORDER BY DP1.name;
+```
+
+## Roles and Permissions
+
+The roles assigned to each user should be checked to ensure that they're appropriate for each user's job responsibilities, following the principle of least privilege. You can view the permissions of each role with:
+```
+SELECT DP1.name AS RoleName,
+       DP2.name AS PermissionName,
+       DP2.type AS PermissionType
+FROM sys.database_role_members DRM
+RIGHT OUTER JOIN sys.database_principals DP1
+    ON DRM.member_principal_id = DP1.principal_id
+LEFT OUTER JOIN sys.database_permissions DP2
+    ON DRM.role_principal_id = DP2.grantee_principal_id
+WHERE DP1.type = 'R'
+ORDER BY DP1.name;
+```
+
+## Authentication Mechanisms
+
+Review the authentication mechanisms in place, including password policies and the use of multi-factor authentication if applicable.
+
+## Review of Administrative Accounts
+
+Special attention should be paid to accounts with administrative privileges. The number of these accounts should be kept to a minimum and their activities should be closely monitored.
+
+## Inactive Users
+
+Review for any inactive user accounts, which could pose a potential security risk. Inactive accounts should be disabled or removed.
+
+## Access to Sensitive Data
+
+Review who has access to sensitive data. Access should be strictly controlled and logged.
+
+
+
+
 [^1]: Templates.
 [^2]: Important Links.
