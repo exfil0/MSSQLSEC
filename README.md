@@ -282,6 +282,50 @@ Review for any inactive user accounts, which could pose a potential security ris
 
 Review who has access to sensitive data. Access should be strictly controlled and logged.
 
+# AUTHENTICATION MECHANISM REVIEW
+
+Ensuring robust and secure authentication mechanisms is vital to protect data integrity and privacy within an MSSQL environment. Authentication is the process that verifies the identity of a user, process, or system. During the MSSQL audit process, an in-depth review of the authentication mechanisms should be conducted.
+
+Key components of this review:
+
+## Authentication Mode
+
+SQL Server supports two authentication modes - Windows Authentication Mode and Mixed Mode (Windows Authentication and SQL Server Authentication).
+
+- Windows Authentication is generally recommended due to its integration with Windows' security features. In this mode, users are authenticated by the Windows operating system before SQL Server is accessed.
+- Mixed Mode allows users to connect through either Windows Authentication or SQL Server Authentication. In the latter, SQL Server validates the account name and password using information in the SQL Server master database.
+
+To check the authentication mode, you can run the following SQL command:
+```
+EXEC xp_loginconfig 'login mode';
+```
+
+## Password Policies
+
+For SQL Server Authentication, SQL Server supports standard password policies of the Windows operating system. This includes complexity validation, password history, and enforcement of password expiration. To retrieve the password policy information for SQL Server logins, you can use:
+```
+SELECT name, is_policy_checked, is_expiration_checked
+FROM sys.sql_logins;
+```
+
+## Multi-Factor Authentication (MFA)
+
+MFA adds an additional layer of security and is particularly recommended for accounts with elevated privileges. While SQL Server does not directly support MFA, it can be implemented through Azure Active Directory.
+
+## Certificates and Asymmetric Keys
+
+For connections requiring a higher level of security, SQL Server supports certificate-based and asymmetric key-based authentication.
+
+## Contained Database Users
+
+In a contained database, the user identity and related security information are stored within the database, and not in the master database. This can simplify the management of user logins, particularly in high availability and disaster recovery scenarios.
+
+To list all contained database users, use the following query:
+```
+SELECT DP.name, DP.type_desc
+FROM sys.database_principals AS DP
+WHERE DP.authentication_type_desc = 'DATABASE';
+```
 
 
 
