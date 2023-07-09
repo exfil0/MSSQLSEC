@@ -641,7 +641,7 @@ Compliance often requires a documented and tested incident response plan. Review
 
 Ensure all users and administrators are aware of compliance requirements and their roles in ensuring compliance. This could involve regular training sessions or briefings.
 
-# REPORTING AND RECOMMANDATIONS
+# REPORTING AND RECOMMENDATIONS
 
 The report and recommendations stage is a critical step in the MSSQL audit process. Here, all the findings from the previous stages are compiled, analyzed, and presented in an organized manner. This process assists in understanding the state of the system and facilitates decision-making for future actions.
 
