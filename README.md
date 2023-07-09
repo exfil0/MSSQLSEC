@@ -421,6 +421,46 @@ Older audit logs should be archived for future reference. Consider using automat
 
 Consider using automated log analysis tools, which can simplify the process of sorting through large amounts of log data and can help quickly identify suspicious activities.
 
+# BACKUP AND RECOVERY PROCEDURES REVIEW
+
+The review of backup and recovery procedures is an integral part of the MSSQL audit process. It ensures the ability to recover data and maintain system availability in the event of a disaster, hardware failure, or data corruption.
+
+The following are key components to consider when reviewing backup and recovery procedures:
+
+## Backup Strategy
+
+A suitable backup strategy must be in place, depending on the business requirements. This might include full, differential, or transaction log backups. To check the last backup times for databases, you can use:
+```
+SELECT database_name, 
+       MAX(backup_finish_date) AS LastBackUpTime
+FROM   msdb.dbo.backupset
+GROUP  BY database_name 
+ORDER  BY 2 DESC;
+```
+
+## Backup Frequency
+
+The frequency of backups should align with the amount of data the business can afford to lose (the Recovery Point Objective or RPO).
+
+## Backup Verification
+
+Backups should be regularly verified to ensure they are not corrupt and can be used for recovery. This can be achieved by periodically performing restore operations on a separate system.
+
+## Offsite Storage
+
+Backups should be stored offsite or in a geographically separate location to protect against regional disasters.
+
+## Recovery Plan
+
+A recovery plan should be documented and regularly tested. The plan should clearly define the steps to take in case of different types of failures and identify the personnel responsible for carrying out those steps.
+
+## Security of Backups
+
+Backups should be secured to prevent unauthorized access. This includes encryption of backup data and secure management of encryption keys.
+
+## Log Shipping
+
+For critical systems, consider using techniques like log shipping, which can minimize downtime and data loss by maintaining a backup server updated with transaction log backups from the primary server.
 
 
 [^1]: Templates.
