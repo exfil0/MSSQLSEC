@@ -1,6 +1,6 @@
-# MSSQLSC - Security Audit on MSSQL
+# MSSQL SECURITY CHECK
 
-A set of advanced tools and methodologies to perform a comprehensive audit on MSSQL.
+MSSQLSC is a set of advanced tools and methodologies to perform a comprehensive audit on MSSQL.
 
 # Table of Contents
 1. [Audit Methodology](#audit-methodology)
