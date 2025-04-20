@@ -8,481 +8,472 @@
 
 MSSQLSEC is a comprehensive toolkit and methodology for conducting in-depth audits on Microsoft SQL Server (MSSQL) databases. This evolving framework reflects ongoing advancements in database security, compliance requirements, and SQL Server’s feature set. It is continually updated to incorporate new technologies such as SQL Server 2022’s security enhancements, ledger tables, Always Encrypted with secure enclaves, and improved high availability features.
 
----
-
-## TABLE OF CONTENTS  
-1. [Introduction and Audit Objectives](#introduction-and-audit-objectives)  
-2. [Audit Methodology](#audit-methodology)  
-3. [Scope of the Audit](#scope-of-the-audit)  
-4. [Database Configuration Review](#database-configuration-review)  
-5. [Stored Procedures and Functions](#stored-procedures-and-functions)  
-6. [Security Measures Analysis](#security-measures-analysis)  
-7. [Access Control Review](#access-control-review)  
-8. [Authentication Mechanism Review](#authentication-mechanism-review)  
-9. [User Roles and Privileges](#user-roles-and-privileges)  
-10. [Audit Trail Review](#audit-trail-review)  
-11. [Backup and Recovery Procedures Review](#backup-and-recovery-procedures-review)  
-12. [Patch Management Review](#patch-management-review)  
-13. [Incident Response Plan Review](#incident-response-plan-review)  
-14. [Application Security Review](#application-security-review)  
-15. [Performance Review](#performance-review)  
-16. [Compliance Verification](#compliance-verification)  
-17. [Report and Recommendations](#report-and-recommendations)  
-18. [Appendix](#appendix)  
-19. [Approval and Signoff](#approval-and-signoff)  
-
----
-
-## 1. INTRODUCTION AND AUDIT OBJECTIVES
-The primary goal of this framework is to provide a structured, repeatable process for auditing MSSQL databases. Objectives include:  
-- Identifying security vulnerabilities and misconfigurations.  
-- Ensuring compliance with relevant regulations (e.g., GDPR, HIPAA, PCI DSS).  
-- Evaluating database performance, reliability, and availability.  
-- Recommending risk mitigation strategies and best practices aligned with the latest SQL Server releases (e.g., SQL Server 2022).  
-
----
-
-## 2. AUDIT METHODOLOGY
-The MSSQLSEC toolkit employs a rigorous, phased approach:
-
-1. **Planning & Scoping**  
-   - Define clear boundaries and objectives (e.g., which instances, databases, or features to audit).  
-   - Identify stakeholders and compliance/regulatory requirements.  
-
-2. **Data Collection**  
-   - Use MSSQLSEC’s automated discovery tools and manual checks to gather configuration, security, and performance data.  
-   - Minimize operational disruption while extracting necessary information (schemas, table structures, stored procedures, user permissions, etc.).  
-
-3. **Analysis**  
-   - Compare collected data against best practices, CIS Benchmarks, and the latest Microsoft documentation.  
-   - Identify vulnerabilities, misconfigurations, or performance bottlenecks.  
-
-4. **Reporting**  
-   - Document findings with clear impact statements.  
-   - Provide prioritized recommendations for remediation or improvement.  
-
-5. **Remediation & Follow-Up**  
-   - Support iterative improvements to continuously refine security posture.  
-   - Re-audit to confirm successful remediation of identified issues.  
-
-Throughout each step, MSSQLSEC adheres to strict data privacy standards and ensures confidentiality and integrity of the data under review.
-
----
-
-## 3. SCOPE OF THE AUDIT
-The scope defines which MSSQL Servers, databases, and features will be audited. This typically includes:
-
-- **Server Infrastructure**  
-  - Host operating system details (IP, MAC, clustering, virtualization).  
-  - Network topology and firewall settings.  
-
-- **Database-Level Components**  
-  - Configuration (memory, parallelism, network, encryption).  
-  - Security measures (access controls, roles, privileges).  
-  - Backup, recovery, and high availability mechanisms.  
-  - Stored procedures, functions, triggers, and associated code.  
-
-- **Compliance and Performance**  
-  - Adherence to regulatory requirements.  
-  - Metrics and usage patterns affecting performance.  
-
-**Initial System Identification**  
-```sql
--- Server Name and SQL Server Instance
-SELECT SERVERPROPERTY('MachineName') AS ServerName,
-       SERVERPROPERTY('InstanceName') AS InstanceName;
-
--- SQL Server Version, Edition, and Engine
-SELECT SERVERPROPERTY('ProductVersion') AS SQLServerVersion,
-       SERVERPROPERTY('ProductLevel') AS SQLServerLevel,
-       SERVERPROPERTY('Edition') AS SQLServerEdition,
-       SERVERPROPERTY('EngineEdition') AS SQLEngineEdition;
-
--- Operating System Information
-SELECT SERVERPROPERTY('IsClustered') AS IsClustered,
-       SERVERPROPERTY('IsFullTextInstalled') AS IsFullTextInstalled,
-       SERVERPROPERTY('IsIntegratedSecurityOnly') AS IsIntegratedSecurityOnly,
-       SERVERPROPERTY('IsSingleUser') AS IsSingleUser,
-       SERVERPROPERTY('OSVersion') AS OSVersion;
-```
-
-IP and MAC details typically come from OS-level commands:
-- **Windows:** `ipconfig /all`  
-- **Linux:** `ifconfig` or `ip addr`  
-
----
-
-## 4. DATABASE CONFIGURATION REVIEW
-A careful review of database configuration ensures alignment with best practices and the latest SQL Server capabilities.
-
-### 4.1 Server Configuration  
-- **Memory Allocation**  
-  - Check `max server memory (MB)` and `min server memory (MB)`:  
-    ```sql
-    EXEC sp_configure 'max server memory (MB)';
-    EXEC sp_configure 'min server memory (MB)';
-    ```
-  - Monitor memory usage with:  
-    ```sql
-    SELECT * FROM sys.dm_os_process_memory;
-    ```
-
-- **Parallel Processing (MAXDOP)**  
-  - Review `max degree of parallelism` and `cost threshold for parallelism`:  
-    ```sql
-    EXEC sp_configure 'max degree of parallelism';
-    EXEC sp_configure 'cost threshold for parallelism';
-    ```
-
-- **Network Configuration**  
-  - Validate network packet size, protocols (TCP/IP, Named Pipes), and firewall rules.  
-  - Check forced encryption settings (especially in SQL Server 2022, which can be combined with TLS 1.3 in some environments).
-
-- **Additional Parameters**  
-  - `max user connections`, `query wait (s)`, `backup compression default`, etc.  
-  - Check for any server-level configurations that might conflict with your organization’s policies.
-
-### 4.2 Database Settings  
-- **Database Files**  
-  ```sql
-  SELECT * 
-  FROM YourDatabase.sys.database_files;
-  ```
-  - Review file growth, locations, initial sizes, and auto-grow increments.
-
-- **Database Properties**  
-  ```sql
-  SELECT *
-  FROM sys.databases
-  WHERE name = 'YourDatabase';
-  ```
-  - Check compatibility level, recovery model, auto-shrink/auto-grow, collation, and options like AUTO_CLOSE or AUTO_CREATE_STATISTICS.
-
-- **Recovery Models**  
-  - Confirm recovery model (FULL, BULK_LOGGED, SIMPLE) aligns with business needs for point-in-time restores.
-
-- **Ledger Tables (SQL Server 2022)**  
-  - If tamper-evidence is required, review usage of ledger tables. Ensure the ledger is correctly configured and regularly validated.
-
-### 4.3 Security Configuration  
-- **Server Logins & Roles**  
-  ```sql
-  EXEC sp_helpsrvrolemember;
-  ```
-- **Database Users & Roles**  
-  ```sql
-  USE YourDatabase;
-  EXEC sp_helprole;
-  ```
-- **Principle of Least Privilege**  
-  - Verify that all logins have only required permissions.  
-- **Encryption**  
-  - Check Transparent Data Encryption (TDE), Always Encrypted (including enclaves in SQL 2022), or column-level encryption.  
-
-### 4.4 Maintenance Plans  
-- **Index Maintenance, Statistics Updates, DBCC CHECKDB**  
-  - Confirm these tasks are scheduled regularly and stored procedures are tested.  
-
-### 4.5 System Health Checks  
-- **Review Logs**  
-  ```sql
-  EXEC xp_readerrorlog;
-  ```
-  - Check for recurring issues, corruption, or misconfigurations.
-
-### 4.6 High Availability & Disaster Recovery  
-- **Availability Groups / Clustering**  
-  ```sql
-  SELECT * FROM sys.dm_hadr_availability_group_states;
-  SELECT * FROM sys.dm_hadr_availability_replica_states;
-  ```
-- **Log Shipping / Replication**  
-  - Verify configurations, latency, and failover testing procedures.
-
----
-
-## 5. STORED PROCEDURES AND FUNCTIONS
-Assess stored procedures and functions for security and performance:
-
-1. **Inventory**  
-   ```sql
-   SELECT name, type_desc FROM YourDatabase.sys.procedures;
-   SELECT name, type_desc FROM YourDatabase.sys.objects 
-   WHERE type_desc LIKE '%FUNCTION%';
-   ```
-2. **SQL Injection Risk**  
-   - Scrutinize dynamic SQL usage. Ensure parameters are properly sanitized.  
-3. **Privilege Requirements**  
-   - Check if procedures require elevated privileges; adhere to least privilege.  
-4. **Performance Tuning**  
-   - Look for inefficient queries, blocking issues, or missing indexes.  
-5. **Documentation**  
-   - Verify clarity on inputs, outputs, and side effects.
-
----
-
-## 6. SECURITY MEASURES ANALYSIS
-Assess defenses against unauthorized access and data breaches:
-
-1. **Server-Level Security**  
-   - Ensure current OS patches, antivirus definitions, and hardened firewall rules.  
-2. **Database-Level Security**  
-   ```sql
-   SELECT pr.principal_id, pr.name, pr.type_desc, 
-          pe.permission_name, pe.state_desc
-   FROM sys.database_permissions pe
-   INNER JOIN sys.database_principals pr 
-       ON pe.grantee_principal_id = pr.principal_id;
-   ```
-3. **Encryption**  
-   - Validate TDE, Always Encrypted configurations, check for TLS 1.2 or higher (TLS 1.3 in supporting environments).  
-4. **Authentication Mode**  
-   ```sql
-   EXEC xp_loginconfig 'login mode';
-   ```
-   - Prefer Windows Authentication or secure solutions (e.g., Azure AD) with MFA.  
-5. **SQL Server Ledger (SQL Server 2022)**  
-   - If configured, validate the ledger’s tamper-evidence capabilities.  
-
----
-
-## 7. ACCESS CONTROL REVIEW
-Ensure only authorized individuals can access data or administrative functions:
-
-1. **User Accounts**  
-   ```sql
-   SELECT DP1.name AS UserName, DP2.name AS RoleName
-   FROM sys.database_role_members DRM
-   RIGHT OUTER JOIN sys.database_principals DP1
-       ON DRM.member_principal_id = DP1.principal_id
-   LEFT OUTER JOIN sys.database_principals DP2
-       ON DRM.role_principal_id = DP2.principal_id
-   WHERE DP1.type = 'S'
-   ORDER BY DP1.name;
-   ```
-2. **Roles and Permissions**  
-   - Match user roles to job functions; enforce least privilege.  
-3. **Administrative Accounts**  
-   - Minimize `sysadmin` and `db_owner` memberships. Review `sp_helpsrvrolemember 'sysadmin'`.  
-4. **Inactive or Orphaned Logins**  
-   - Disable or remove unused accounts.  
-5. **Access to Sensitive Data**  
-   - Log and monitor all sensitive data access.  
-
----
-
-## 8. AUTHENTICATION MECHANISM REVIEW
-Evaluate how identities are verified:
-
-1. **Authentication Modes**  
-   - Windows-only vs. Mixed Mode.  
-2. **Password Policies**  
-   ```sql
-   SELECT name, is_policy_checked, is_expiration_checked
-   FROM sys.sql_logins;
-   ```
-   - Check complexity requirements, expiration intervals, MFA if possible.  
-3. **Certificates and Keys**  
-   - Consider certificate-based or asymmetric key-based authentication for added security.  
-4. **Contained Databases**  
-   ```sql
-   SELECT DP.name, DP.type_desc
-   FROM sys.database_principals AS DP
-   WHERE DP.authentication_type_desc = 'DATABASE';
-   ```
-   - Ensure contained database security is used appropriately.
-
----
-
-## 9. USER ROLES AND PRIVILEGES
-Deep dive into role-based access controls within each database:
-
-1. **Role Assignment**  
-   ```sql
-   SELECT DP1.name AS UserName, DP2.name AS RoleName
-   FROM sys.database_role_members DRM
-   ...
-   ```
-2. **Permission Review**  
-   ```sql
-   SELECT object_name(major_id) AS Object,
-          USER_NAME(grantee_principal_id) AS Grantee,
-          permission_name
-   FROM sys.database_permissions
-   WHERE class = 1;
-   ```
-3. **Administrative Privileges**  
-   - Monitor `db_owner`, `db_securityadmin`, and `sysadmin`.  
-4. **Object-Level Permissions**  
-   - Ensure only authorized roles/users can perform DML/DDL.  
-
----
-
-## 10. AUDIT TRAIL REVIEW
-Audit trails are essential for detecting unauthorized activity:
-
-1. **SQL Server Audit**  
-   ```sql
-   SELECT * FROM sys.server_audits;
-   SELECT * FROM sys.database_audit_specifications;
-   ```
-   - Confirm relevant events (logins, schema changes, permissions changes) are logged.  
-2. **Audit Log Review**  
-   - Regularly inspect logs for suspicious activities (failed logins, unusual hours).  
-3. **Log Retention and Archiving**  
-   - Adhere to compliance requirements, maintain logs securely.  
-4. **Automation**  
-   - Consider using SIEM solutions or Microsoft Defender for Cloud to analyze logs.  
-
----
-
-## 11. BACKUP AND RECOVERY PROCEDURES REVIEW
-A robust backup strategy ensures data availability and business continuity:
-
-1. **Backup Strategy**  
-   ```sql
-   SELECT database_name, 
-          MAX(backup_finish_date) AS LastBackUpTime
-   FROM msdb.dbo.backupset
-   GROUP BY database_name
-   ORDER BY 2 DESC;
-   ```
-   - Confirm full, differential, and log backups align with RPO/RTO.  
-2. **Testing & Verification**  
-   - Regularly restore backups in a test environment to validate integrity.  
-3. **Offsite/Cloud Storage**  
-   - Protect against local disasters.  
-4. **Backup Encryption**  
-   - Encrypt backups and secure the encryption keys.  
-5. **Advanced Features**  
-   - Evaluate Log Shipping, Availability Groups, or automatic failover solutions.  
-
----
-
-## 12. PATCH MANAGEMENT REVIEW
-Keeping SQL Server and its host OS up to date is critical:
-
-1. **Patch Availability**  
-   - Monitor Microsoft updates, CU (Cumulative Updates), and security bulletins.  
-2. **Testing in Non-Production**  
-   - Validate patches before production rollout.  
-3. **Deployment & Rollback**  
-   - Automate consistent patching across servers.  
-   - Document rollback processes if patches introduce instability.  
-4. **Patch Documentation**  
-   - Track applied patches, their versions, and any observed issues.  
-
----
-
-## 13. INCIDENT RESPONSE PLAN REVIEW
-A well-prepared IRP minimizes damage and recovery time during security incidents:
-
-1. **Plan Clarity**  
-   - Clearly define detection, containment, eradication, and recovery steps.  
-2. **Roles & Responsibilities**  
-   - Identify key personnel (DBAs, Security Officers, Management).  
-3. **Communication Strategy**  
-   - Internal and external notifications, media handling if applicable.  
-4. **Incident Classification**  
-   - Severity levels dictate different escalation paths.  
-5. **Testing & Drills**  
-   - Conduct periodic tabletop exercises or live drills.  
-6. **Post-Incident Review**  
-   - Update IRP based on lessons learned.  
-
----
-
-## 14. APPLICATION SECURITY REVIEW
-Applications interfacing with the database can introduce vulnerabilities:
-
-1. **Secure Coding**  
-   - Validate input (avoid SQL injection), handle errors securely, follow OWASP guidelines.  
-2. **Static & Dynamic Analysis**  
-   - Implement SAST/DAST tools for code scanning.  
-3. **Dependency Management**  
-   - Keep libraries and frameworks patched.  
-4. **Access Control**  
-   - Enforce principle of least privilege in the application layer.  
-5. **Encryption in Transit**  
-   - Use TLS to protect data flows between application and database.  
-6. **Session Management**  
-   - Invalidate sessions properly, implement secure cookies, consider MFA for critical actions.  
-
----
-
-## 15. PERFORMANCE REVIEW
-A healthy MSSQL environment balances security with efficiency:
-
-1. **Performance Metrics**  
-   - Monitor CPU, memory, disk I/O, and network throughput using SQL Server DMVs, Extended Events, or third-party tools.  
-2. **SQL Server Profiler / Extended Events**  
-   - Identify slow queries or high resource usage.  
-3. **Indexing Strategy**  
-   - Use Database Engine Tuning Advisor or specialized scripts (e.g., `sp_BlitzIndex`) to optimize indexes.  
-4. **Query Optimization**  
-   - Investigate high-cost queries; ensure up-to-date statistics.  
-5. **Resource Allocation**  
-   - Adjust CPU, memory, and storage configurations according to workload.  
-
----
-
-## 16. COMPLIANCE VERIFICATION
-Align MSSQL configurations and practices with relevant laws, regulations, and standards:
-
-1. **Data Protection Regulations**  
-   - GDPR, CCPA, HIPAA, POPIA, etc. Confirm consent, data subject rights, retention, and lawful processing.  
-2. **Security Frameworks**  
-   - Map controls to ISO 27001, NIST SP 800-53, CIS Benchmarks, or your organizational standard.  
-3. **Industry-Specific Requirements**  
-   - PCI DSS for cardholder data, SOX for financial data, etc.  
-4. **Audit Trails**  
-   - Confirm logs are comprehensive and tamper-evident (leveraging SQL Server Ledger if applicable).  
-5. **Data Retention Policies**  
-   - Ensure data is retained or deleted according to regulatory mandates.  
-6. **Training & Awareness**  
-   - Provide regular training to DBAs, developers, and end-users on compliance responsibilities.
-
----
-
-## 17. REPORT AND RECOMMENDATIONS
-Compile findings and actionable next steps:
-
-1. **Summary of Findings**  
-   - Highlight vulnerabilities, misconfigurations, performance bottlenecks, and compliance gaps.  
-2. **Detailed Analysis**  
-   - Clearly state potential risk impacts and root causes.  
-3. **Recommendations**  
-   - Prioritize fixes based on severity and business impact.  
-   - Propose timelines and resource estimates.  
-4. **Future Considerations**  
-   - Note any emerging features (e.g., future SQL Server releases, new security modules) or out-of-scope areas worth reviewing later.  
-5. **Appendices**  
-   - Include detailed system logs, configuration outputs, or references that support the analysis.
-
----
-
-## 18. APPENDIX
-Use this section to provide supplementary materials, such as:
-- **Sample Queries and Scripts**  
-- **Configuration Templates**  
-- **Reference Links**  
-
-[^1]: Templates for standard checklists, maintenance scripts, or IRP forms.  
-[^2]: Important links to Microsoft Docs, CIS Benchmarks, or relevant KB articles.  
-
----
-
-## 19. APPROVAL AND SIGNOFF
-Conclude the audit with formal approval and signoff. This should include:  
-- **Acknowledgment**: A statement confirming that the findings and recommendations have been reviewed.  
-- **Authorizing Parties**: Names, roles, and signatures of individuals (e.g., CIO, CISO, DBAs, other stakeholders) who accept the results and commit to remediation steps.  
-- **Next Audit Schedule**: Proposed timeline for the next review or follow-up audit.  
+## 1. Introduction and Audit Objectives
+
+This MSSQL Security Audit Framework provides a structured approach for evaluating Microsoft SQL Server security, incorporating international best practices and compliance requirements as of 2025. It is an evolution of the MSSQLSEC framework, updated to cover new SQL Server 2019/2022 features (e.g. Always Encrypted with secure enclaves, Ledger tables) and to align with global standards (CIS Benchmarks, NIST SP 800-53 Rev.5, ISO/IEC 27001:2022) and regulations (GDPR, CCPA, PCI-DSS 4.0). The audit’s primary objectives include: 
+
+- **Identify Vulnerabilities and Misconfigurations:** Uncover configuration weaknesses, unsafe practices, or missing patches that could be exploited. This includes verifying secure settings in SQL Server and the host environment ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=The%20primary%20goal%20of%20this,Objectives%20include)).
+- **Ensure Compliance with Standards and Laws:** Validate that SQL Server implementations meet relevant security controls from CIS, NIST, ISO 27001, and industry regulations (e.g. GDPR Article 32 security measures, PCI-DSS requirements for data protection) ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=The%20primary%20goal%20of%20this,Objectives%20include)).
+- **Assess New Security Features:** Evaluate the usage of advanced SQL Server security features (like Always Encrypted with secure enclaves and Ledger) that enhance data protection and integrity ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=audits%20on%20Microsoft%20SQL%20Server,and%20improved%20high%20availability%20features)).
+- **Maintain Reliability and Availability:** Confirm that security controls do not unduly affect performance or uptime, and that robust backup and recovery mechanisms are in place for availability (which is part of the CIA triad and mandated by GDPR Art.32) ([Art. 32 GDPR – Security of processing - General Data Protection Regulation (GDPR)](https://gdpr-info.eu/art-32-gdpr/#:~:text=1,account%20shall%20be%20taken%20in)).
+- **Provide Risk-Based Recommendations:** Deliver clear, prioritized remediation steps to mitigate identified risks, aligned with best practices and the latest SQL Server guidance.
+
+By achieving these objectives, the framework helps organizations **proactively safeguard data, meet international compliance obligations, and implement security best practices** in their SQL Server environments.
+
+## 2. Audit Methodology
+
+The audit methodology follows a phased approach to ensure thorough coverage and repeatability ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=The%20MSSQLSEC%20toolkit%20employs%20a,rigorous%2C%20phased%20approach)) ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=3)):
+
+1. **Planning & Scoping:** Define the audit’s scope and objectives. Identify the SQL Server instances, databases, and infrastructure components to be examined, considering regulatory requirements and stakeholder input. Clear scoping ensures critical systems (e.g. production databases with sensitive data) are prioritized and compliance obligations (PCI, GDPR, etc.) are understood upfront ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=1)). This phase also maps the relevant controls from CIS, NIST, ISO, etc., that will apply to the in-scope systems.
+
+2. **Data Collection:** Gather configuration and operational data with minimal disruption. Use automated tools (such as CIS-compliant scripts or the MSSQLSEC toolkit) and manual checks to collect information on server settings, database schemas, user accounts, privileges, and security features in use ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=2)). Ensure sensitive data is handled carefully during this process (consistent with privacy laws). Data collection may include running queries (e.g. system catalog views), reviewing configuration files, and interviewing DBAs about operational procedures.
+
+3. **Analysis:** Compare the collected data against security benchmarks and standards. Identify deviations from CIS Benchmark recommendations, known vulnerabilities, or practices violating policies. For example, detect any configuration that fails CIS Microsoft SQL guidelines or any weak controls when mapped to NIST SP 800-53 or ISO 27001 requirements ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=3)). Each finding is analyzed for potential impact (e.g. a disabled audit or a weak password setting) and the associated risk level (high, medium, low). Where applicable, leverage the latest Microsoft documentation to verify if settings are up-to-date and consider the presence of new SQL Server features (e.g. encrypted enclaves, ledger) that could mitigate risks.
+
+4. **Reporting:** Document all findings with clear descriptions and evidence. Each finding should include the observed issue, the risk or impact (security, compliance, operational), and references to the relevant standard or control (for traceability). The report should map each issue to specific controls (e.g. CIS control ID, NIST control number, PCI requirement) to show compliance implications. Include an overall summary for executives and detailed technical sections for DBAs. Prioritized recommendations are provided for each finding, distinguishing quick wins from long-term improvements ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=,Reporting)). The reporting phase culminates in a formal audit report (see Section 17).
+
+5. **Remediation & Follow-Up:** Although not strictly part of the audit execution, the framework emphasizes remediation and continuous improvement ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=,Reporting)). After delivering the report, the organization should address the recommendations. The framework supports an iterative process: after fixes are applied, a follow-up verification (re-audit or targeted testing) confirms that vulnerabilities have been resolved. This phase ensures the security posture is improved and remains compliant, and it aligns with the ISO 27001 PDCA cycle and GDPR’s requirement for ongoing evaluation of security measures ([Art. 32 GDPR – Security of processing - General Data Protection Regulation (GDPR)](https://gdpr-info.eu/art-32-gdpr/#:~:text=timely%20manner%20in%20the%20event,transmitted%2C%20stored%20or%20otherwise%20processed)).
+
+Throughout all phases, maintain confidentiality and integrity of the data under review. Access to audit data and findings should be restricted, and data privacy considerations (especially when reviewing production data) must be respected ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=Throughout%20each%20step%2C%20MSSQLSEC%20adheres,of%20the%20data%20under%20review)). This methodology is designed to be **repeatable and comprehensive**, giving auditors and security teams a clear path to evaluate SQL Server security against international standards.
+
+## 3. Scope of the Audit
+
+The scope defines **which systems and areas are covered** by the MSSQL security audit. It is important to clearly delineate the scope to focus efforts and meet compliance requirements:
+
+- **SQL Server Instances:** Identify specific instances (by name or IP/host) of Microsoft SQL Server to audit. This can include on-premises versions (2019, 2022) and cloud or hybrid deployments (e.g. Azure Arc-enabled SQL instances) if applicable. Each instance’s components (Database Engine, SQL Agent, etc.) are in scope for configuration review.
+
+- **Databases and Schemas:** List the databases on each instance that store critical or sensitive information. For example, production databases containing personal data (GDPR-relevant) or cardholder data (PCI-DSS relevant) would be in scope. System databases (master, msdb, etc.) are also included due to their role in security configuration.
+
+- **Security Domains:** The audit will review both **configuration and operational security**. Configuration scope includes instance-level settings, database options, login accounts, roles, permissions, encryption settings, etc. Operational scope includes processes like backup routines, patch management, user provisioning, and incident response as they pertain to SQL Server.
+
+- **Interfaces and Dependencies:** Consider components that interact with SQL Server. This may include the underlying OS settings (e.g. Windows Server configuration relevant to SQL security, such as firewall rules or service accounts), application servers that connect to the database (for reviewing how they authenticate and use the DB), and any tools or agents (such as backup software or monitoring agents). While the primary focus is on SQL Server itself, these peripheral areas can be included or excluded as needed. It’s recommended to at least verify OS-level security for the database server (consistent with CIS benchmarks for the OS) and network controls (firewalls, etc., per NIST and PCI requirements).
+
+- **Exclusions:** Document any exclusions. For example, if development or test databases are out of scope or if certain low-criticality databases are skipped, note this. Commonly, non-production environments may be audited separately or not at all. Also, if the audit focuses on database security, application-level code review might be limited (though Section 14 covers a high-level app security check).
+
+By clearly defining scope, the audit remains **targeted and efficient**. It ensures that all high-risk areas (from a business and compliance perspective) are covered and that the audit results can be mapped to relevant regulatory requirements. The scope should be approved by stakeholders before the audit begins to prevent scope creep and to ensure alignment with compliance boundaries (for instance, GDPR’s territorial scope or PCI’s CDE boundary for card data systems).
+
+## 4. Database Configuration Review
+
+This section examines the core SQL Server configuration for security best practices. The goal is to **harden the database server** by verifying that default settings have been tightened and only secure, necessary services are running. Key areas reviewed include network settings, system parameters, and surface area reduction:
+
+- **Secure Network Configuration:** Ensure SQL Server is not using default communication ports and is not openly advertising its presence. By default, SQL Server uses TCP port 1433, which is well-known; changing it to a non-standard port can help mitigate opportunistic attacks ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf)) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=Rationale%3A%20Using%20%20%20a,application)). Similarly, the “Hide Instance” option should be enabled so that the SQL Server does not respond to UDP broadcasts (SQL Browser service) with its name and port ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=2,41)). **Rationale:** Using non-default ports and hiding the instance complicates attackers’ ability to find and target the database ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=Rationale%3A%20Using%20%20%20a,application)). *(CIS 2.11, 2.12; NIST CM-7; PCI DSS 4.0 Req.1/2)*
+
+- **Remove or Secure Default Accounts:** The well-known SQL admin account `sa` should be disabled and/or renamed. Even if strong passwords are used, leaving `sa` active provides a fixed target for brute-force or credential stuffing attacks ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=The%20%20%20%20,principal)). Disabling `sa` (and any similarly high-privilege default account) forces attackers to guess both a username and password, significantly reducing risk ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=principal_id%3D1%20and%20%20%20,sa%20account)) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=Enforcing%20%20%20%20,principal)). If `sa` must exist (for legacy reasons), it should be renamed to a non-obvious name and protected by a strong password, but the preferred practice is to use Windows Authentication for administrative access and leave `sa` disabled entirely. *(CIS 2.13, 2.14; NIST AC-2, IA-5; ISO 27001 A.8 (user access control); PCI DSS 4.0 Req. 2.1.1, 7.2; GDPR Art.32)*
+
+- **Disable Unused Features and Services:** Minimize the SQL Server attack surface by disabling or uninstalling features that are not required. For example, if the environment does not need SQL Server Agent or Integration Services on that instance, ensure those services are stopped and not running. A critical setting is to verify the extended stored procedure `xp_cmdshell` remains disabled (it is disabled by default in modern versions). Enabling `xp_cmdshell` can allow OS command execution through SQL, which is dangerous and should only be enabled in controlled scenarios with strict permissions. Other features to review include Database Mail, CLR integration (if not needed), and SQL Server’s remote admin connections. If CLR is used, ensure “CLR strict security” is enabled to enforce code access security for CLR assemblies ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=2,Automated)). Each enabled feature or service should be justified by business need and configured securely. *(CIS 2.17, 6.2; NIST CM-7; ISO 27001 A.8 (least functionality); PCI DSS 4.0 Req. 2.2.2)*
+
+- **Secure Configuration Settings:** Review numerous instance-level settings for secure values. Examples include: enabling “**Default Trace**” (so that the default lightweight auditing of events is on by default) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf)), setting “**Max Server Memory**” appropriately to avoid OS swapping (ensuring stability), disabling “**AUTO_CLOSE**” on databases (CIS recommends OFF for contained DBs to avoid unnecessary reopening which can have security side-effects) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=2,Automated)), and verifying that database ownership chaining is disabled unless explicitly required. Another key setting is whether the SQL instance forces encrypted connections – enabling “Force Encryption” on the server network configuration ensures all client-server communications are encrypted via TLS. While not in the CIS benchmark, **forcing TLS encryption** is considered best practice to protect data in transit (mapping to GDPR’s encryption requirement and PCI’s requirement to encrypt admin and card data transmissions). Ensure a valid SSL/TLS certificate is installed for the SQL Server if encryption is forced, and that older protocols (SSL 3.0, TLS 1.0) are disabled on the host to meet current cryptographic standards ([Art. 32 GDPR – Security of processing - General Data Protection Regulation (GDPR)](https://gdpr-info.eu/art-32-gdpr/#:~:text=1,account%20shall%20be%20taken%20in)).
+
+- **Environment Hardening:** Confirm that the host machine and environment of SQL Server are hardened. This includes OS-level configurations like Windows firewall rules (restrict incoming SQL traffic only to authorized application servers or networks), and that only necessary protocols are enabled for SQL Server (prefer TCP/IP over less secure or unused protocols like Named Pipes or Shared Memory, unless needed for local usage). Check that the SQL Server service accounts follow least privilege – they should not be running as local administrators on the server ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=3,Manual)). The service accounts for SQL Engine, SQL Agent, etc., must be dedicated, low-privileged accounts (as per CIS 3.5, 3.6, 3.7) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=3,Manual)). Additionally, verify that directory permissions on SQL Server files (database files, backups) are restricted (SQL service account and administrators only), preventing unauthorized OS users from accessing database files.
+
+**Mappings to Standards – Database Configuration:**
+
+| **Configuration Control**                  | **CIS Benchmark**                 | **NIST SP 800-53 Rev5**                 | **ISO/IEC 27001:2022**                 | **GDPR/CCPA**                                      | **PCI DSS v4.0**                                |
+|--------------------------------------------|-----------------------------------|-----------------------------------------|---------------------------------------|--------------------------------------------------|------------------------------------------------|
+| Non-default port & hide SQL instance       | CIS 2.11, 2.12 ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf)) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=Rationale%3A%20Using%20%20%20a,application)) | CM-7 (Least Functionality: limit open ports)      | Control for Network Security (Annex A)           | Art. 32(1) – appropriate security measure (harder to discover system) | Req 1.2.1: Restrict incoming traffic to necessary services; Req 2.2.2: only needed services/ports |
+| Disable/rename default ‘sa’ admin account  | CIS 2.13, 2.14 ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=The%20%20%20%20,principal))   | AC-2 (Account Management – remove default accounts); IA-5 (Authenticator mgmt) | A.9 – Identity Management & Access Control       | Art. 32(1)(b) – ensure confidentiality (least privilege access); CCPA – “reasonable security” to protect personal data | Req 2.1.1: Change default accounts/passwords; Req 7.2: Limit privileged user access            |
+| Disable unnecessary features (xp_cmdshell, etc.) | CIS 2.17, 6.2                    | CM-7 (Least Functionality – disable unused functionality) | A.8 – Secure Configuration of systems           | Art. 32(1) – appropriate technical measures (reduce attack surface) | Req 2.2: Develop configuration standards (disable insecure services) |
+| Enable strict security settings (e.g. CLR strict security) | CIS 2.17 ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=2,to)), 6.2    | SC-18 (Secure code execution), CM-7            | A.8 – Secure system engineering principles      | Art. 32(1) – protect integrity of processing (prevent unsafe code) | Req 6.2.3: Secure system configuration for databases (no insecure code) |
+| Encrypt data in transit (force TLS)        | (Referenced in MS Docs, not explicit CIS) | SC-8 (Transmission Confidentiality), SC-13 (Cryptographic Protection) | A.10 – Cryptography; A.8 – Communications security | Art. 32(1)(a) – encryption of personal data in transit; CCPA – protect PII in transit          | Req 4.2: Use strong cryptography for transmission of cardholder data and admin access |
+
+*Table 1: Mapping of Configuration Review controls to CIS (SQL Server 2019/2022 benchmarks) and other standards.* Each configuration check corresponds to one or more controls in the listed frameworks. Implementing these hardened settings helps fulfill requirements such as **CIS Level 1 benchmarks, NIST CM-7 and AC-2 controls, ISO 27001 Annex A controls on access control and secure configuration, GDPR Article 32’s mandate for appropriate technical measures (like encryption and access restrictions), and PCI DSS provisions on removing defaults and securing services**.
+
+## 5. Stored Procedures and Functions Review
+
+This section focuses on the **database code**: stored procedures, user-defined functions, and triggers. The goal is to ensure that database programming follows secure coding practices, since vulnerabilities at this level (like SQL injection in a procedure) can be as damaging as those in application code. Key audit steps include:
+
+- **Input Validation and Sanitization:** Review stored procedures and functions to ensure they properly handle input. Parameters passed to procedures should be validated (e.g. using data type constraints or explicit checks) and used in queries via parameterization. Dynamic SQL constructed from procedure inputs can introduce SQL injection risks if not handled safely. Check for any concatenation of user input into SQL strings. If found, confirm that the code at least uses proper escaping or, preferably, redesign it to use parameterized queries or sp_executesql with parameters. **Rationale:** Even internal procedures might be exploitable if an application user input is passed through, so ensuring input is sanitized upholds the integrity of the database (mapping to NIST SI-10 for input validation).
+
+- **Principle of Least Privilege in Procedures:** Ensure that stored procedures execute with the minimum required privileges. If a procedure needs elevated rights (for example, a procedure that updates multiple schemas might need more privileges than a normal user), prefer using certificate signing or the EXECUTE AS clause to grant scoped privileges, rather than making a user an overly powerful role. Check if any procedures use `EXECUTE AS OWNER` or similar – these should be reviewed carefully, as they can act with high privileges. There should be a justification for any such use, and ideally, use code signing to control permissions. No procedure should **grant broad access** as a side effect. This aligns with **ISO least privilege** and **NIST AC-6** controls.
+
+- **Secure Coding Practices:** Evaluate whether the database code follows general secure development practices. This includes error handling (not exposing sensitive info in error messages), avoidance of deprecated or unsafe functions, and efficiency of code (to avoid causing performance issues under load, which can become a security availability issue). If encryption routines are implemented in T-SQL (for example, custom encryption or hashing in stored procs), verify they use modern algorithms (AES-128 or higher as per CIS 7.1) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=4%20%20%20%20,71)) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=)) and proper key management. Additionally, ensure procedures that handle sensitive data (like retrieving personal info) implement measures such as data masking or only return the necessary fields, supporting privacy by design (GDPR’s data minimization principle).
+
+- **Change and Version Control:** Confirm that stored procedures and functions are subject to change management. There should be documentation or comments indicating who last modified the object and why (especially for security-related routines). This procedural check ensures that any changes to DB code are reviewed for security impacts (mapping to NIST CM-3 configuration change control). It also implies that the organization treats DB code like application code – meaning security testing (code review, static analysis) is done when procedures are created or changed (PCI DSS Req 6.3.2 requires review of custom code for vulnerabilities). Auditors may request evidence of code review processes for critical procedures, especially those involved in authentication, authorization, or cryptographic operations.
+
+- **Examining Dangerous Commands:** Flag any use of `xp_cmdshell` or CLR assemblies in stored procedures. While these are more configuration items, if any stored proc calls `xp_cmdshell` (which executes OS commands) or if any user assemblies are deployed, they need scrutiny. CLR assemblies should be reviewed to ensure they are set with SAFE or EXTERNAL_ACCESS permission sets, not UNSAFE, unless absolutely required and security-reviewed ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=%28Manual%29,Logins)) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=2,to)). The CIS benchmark recommends CLR assemblies have SAFE_ACCESS permission and enabling “CLR strict security” enforces that any UNSAFE assembly requires a trustworthy signature or elevated privileges to deploy ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=2,to)). If the audit finds CLR code, ensure the assembly code was security-reviewed (source code review) and that strong naming and signing practices are used.
+
+**Mappings to Standards – DB Code Security:**
+
+- **NIST SP 800-53:** SA-11 (Security engineering principles) and SI-10 (Input validation) apply to secure coding of procedures. Also AC-6 (Least privilege) applies to how procedures use execution context.
+- **ISO/IEC 27001:2022:** The standard includes controls for secure development (formerly A.14 in 2013 version, now reorganized). The code review and approval process maps to secure development lifecycle controls, and least privilege in code maps to access control policies in development.
+- **PCI-DSS v4.0:** Requirement 6 addresses secure development of systems. In particular, 6.2.3 (application security) and 6.3.2 (code review for vulnerabilities) are relevant. If the SQL DB is in PCI scope (stores card data), any procedures dealing with PAN data should be coded to PCI standards (e.g. no stored PAN in logs, proper encryption when storing).
+- **GDPR/CCPA:** While these don’t dictate coding, GDPR Art.25 (Data protection by design and default) would imply that stored procedures accessing personal data should be designed to enforce privacy (e.g. only return necessary data, perhaps pseudonymize or mask data if possible). Ensuring stored procs can facilitate rights (like data erasure, extraction for access requests) securely is also a consideration for compliance.
+
+*Recommendation:* If possible, use automated code scanning tools or scripts to scan for risky patterns in SQL code (like the use of `EXECUTE()` with concatenated strings). Many SQL vulnerabilities can be detected with pattern matching. Coupling this with manual review of critical procedures provides defense-in-depth in the code review process.
+
+## 6. Security Measures Analysis (Encryption & Advanced Features)
+
+In this section, we analyze the **security features and controls implemented within SQL Server** to protect data. This includes encryption (at rest and in transit), data masking, and any advanced SQL Server security capabilities enabled.
+
+- **Data Encryption at Rest:** Verify that sensitive data is encrypted at rest in the database. The common mechanism is Transparent Data Encryption (TDE), which encrypts database files and backups. If TDE is enabled on databases containing sensitive or regulated data (PII, financial, health, etc.), confirm that the encryption uses strong algorithms (AES-128 or AES-256, which meets CIS recommendation for encryption strength ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=4%20%20%20%20,71))). Check that the **Database Encryption Key** is protected by a secure master key (stored in the master database and ideally backed by an HSM or Azure Key Vault in enterprise setups). If TDE is not used, determine if other encryption is applied at the application or column level. For any custom or column-level encryption, ensure key management is robust (keys are not stored in plaintext in the code or server) and algorithms are up to date (no deprecated ciphers). This addresses compliance like PCI DSS Requirement 3 (protect stored cardholder data via encryption) and GDPR’s encouragement of encryption for personal data ([Art. 32 GDPR – Security of processing - General Data Protection Regulation (GDPR)](https://gdpr-info.eu/art-32-gdpr/#:~:text=1,account%20shall%20be%20taken%20in)).
+
+- **Always Encrypted with Secure Enclaves:** If the organization uses **Always Encrypted**, evaluate its deployment. Always Encrypted (AE) is a feature that keeps data encrypted in the SQL Server engine and only decrypts on the client side, protecting data even from DBAs. The newer enhancement, **secure enclaves**, available in SQL 2019+ and Azure SQL, allows certain operations on encrypted data within a secure enclave in memory ([Always Encrypted with secure enclaves - SQL Server | Microsoft Learn](https://learn.microsoft.com/en-us/sql/relational-databases/security/encryption/always-encrypted-enclaves?view=sql-server-ver16#:~:text=Always%20Encrypted%20with%20secure%20enclaves,as%20in%20Azure%20SQL%20Database)) ([Always Encrypted with secure enclaves - SQL Server | Microsoft Learn](https://learn.microsoft.com/en-us/sql/relational-databases/security/encryption/always-encrypted-enclaves?view=sql-server-ver16#:~:text=Introduced%20in%20Azure%20SQL%20Database,all%20of%20the%20actual%20data)). Check if enclaves are enabled for any column (e.g. columns configured with ENCLAVE_COMPUTATIONS). If so, verify that the environment attestation is configured (the enclave is attested via a certificate proving its trust). Always Encrypted with enclaves can support richer queries (pattern matching, sorting on plaintext) without exposing data to the DB engine ([Always Encrypted with secure enclaves - SQL Server | Microsoft Learn](https://learn.microsoft.com/en-us/sql/relational-databases/security/encryption/always-encrypted-enclaves?view=sql-server-ver16#:~:text=Always%20Encrypted%20with%20secure%20enclaves,as%20in%20Azure%20SQL%20Database)). **Rationale:** This feature is particularly relevant for highly sensitive data (SSNs, encryption keys, etc.) that even DB admins should not see. It aligns with the principle of protecting data from insider threats and is an excellent control for privacy compliance – it ensures that personal data remains confidential even from privileged users ([Always Encrypted with secure enclaves - SQL Server | Microsoft Learn](https://learn.microsoft.com/en-us/sql/relational-databases/security/encryption/always-encrypted-enclaves?view=sql-server-ver16#:~:text=Introduced%20in%20Azure%20SQL%20Database,all%20of%20the%20actual%20data)). Auditing should note which sensitive fields (if any) are protected by Always Encrypted, and ensure proper implementation (e.g. keys are kept client-side or in a secure key store, and enclaves are properly configured).
+
+- **Data Masking and Classification:** Determine if **Dynamic Data Masking** is used on any columns to obscure sensitive data in query results for non-privileged users. While masking is not a strong security control (it’s bypassable by privileged users), it can reduce accidental exposure. If used, ensure the masking rules are appropriate and that privileged users (who can see unmasked data) are limited. Additionally, check if **SQL Data Discovery & Classification** features have been utilized (SQL Server Management Studio provides classifying columns as Confidential, etc.). If a classification scheme is in place, it’s a good sign of data awareness; verify it’s up to date and maybe used to drive auditing (e.g. auditing all selects on highly sensitive data). These features tie into GDPR’s data governance requirements (knowing where personal data is located and protecting it accordingly).
+
+- **Row-Level Security (RLS):** If RLS is implemented to restrict data access by user (common in multi-tenant databases or any scenario requiring fine-grained access control), assess the RLS filters for correctness. Ensure that the predicate functions cannot be easily bypassed and that all relevant tables have the security policy applied. RLS helps enforce **least privilege** at the data level (NIST AC-3, AC-6) by ensuring users only read rows they are entitled to. If not implemented but the use-case warrants it (for example, many different users accessing a shared table but should only see their own records), recommend considering RLS as a strengthening measure.
+
+- **Transparent Data Access Controls:** Check if **SQL Server Audit** is used to enforce access controls in a broader sense (Audit is more for logging, covered in section 10, but can also filter or write events). Another feature, **Application Roles**, can be looked for: if application roles are in use, verify they are enabled and that the application handles the password for the role securely. Application roles allow an app to assume certain privileges when connecting, and can be a way to enforce context-specific access.
+
+- **Ledger Tables (SQL Server 2022):** SQL Server 2022 introduced the **Ledger** feature, which provides tamper-evident tables using blockchain-like cryptographic hashes. If the environment is on SQL 2022, check whether any **ledger tables** are implemented for critical data (especially if an audit trail or integrity of certain records is paramount). For any ledger-enabled database, confirm that the **database ledger** is being periodically backed up or verified, and that the user is aware of how to validate the cryptographic integrity (through stored digests or using the MS provided tools) ([What's new in SQL Server 2022 - SQL Server | Microsoft Learn](https://learn.microsoft.com/en-us/sql/sql-server/what-s-new-in-sql-server-2022?view=sql-server-ver16#:~:text=Arc%20%20for%20details,to%20connect%20to%20SQL%20Server)) ([What's new in SQL Server 2022 - SQL Server | Microsoft Learn](https://learn.microsoft.com/en-us/sql/sql-server/what-s-new-in-sql-server-2022?view=sql-server-ver16#:~:text=Ledger%20The%20ledger%20feature%20provides,to%20connect%20to%20SQL%20Server)). The presence of ledger tables indicates an advanced integrity control, mapping to NIST SC-16 (determine data integrity protections) and can assist in proving records haven’t been altered (useful for compliance and forensic purposes). If not used, consider if there are use cases (e.g. financial transaction logs) where ledger would add value for integrity assurance.
+
+- **Advanced Threat Protection:** Determine if any advanced security services are enabled, such as Microsoft Defender for SQL or vulnerability assessment tools. For example, Azure Defender for SQL (for on-prem via Azure Arc or directly in Azure) can scan the DB for vulnerabilities and suspicious activities ([What's new in SQL Server 2022 - SQL Server | Microsoft Learn](https://learn.microsoft.com/en-us/sql/sql-server/what-s-new-in-sql-server-2022?view=sql-server-ver16#:~:text=New%20feature%20or%20update%20Details,access%20policies%20to%20any%20SQL)). If such services are enabled, review any findings from those tools to see if they align with audit findings. While not a configuration per se, their usage demonstrates proactive security management. Additionally, **SQL Server’s own features** like **Extended Events** or **SQL Audit** might be set up to detect anomalies (we cover auditing in section 10). If **policy-based management** is used to enforce security policies (like ensure certain options are always set a certain way), mention it as a positive practice.
+
+**Mappings to Standards – Security Features:**
+
+- **Encryption (TDE, Always Encrypted):** Maps to **GDPR Art.32(1)(a)** (encryption of personal data) ([Art. 32 GDPR – Security of processing - General Data Protection Regulation (GDPR)](https://gdpr-info.eu/art-32-gdpr/#:~:text=1,account%20shall%20be%20taken%20in)), **PCI DSS Req. 3** (protect stored data encryption keys and data), and **NIST SC-28** (Protection of Data at Rest) and SC-13 (Cryptographic protection).
+- **Access Controls (RLS, Masking):** Maps to **NIST AC-3** (Access enforcement) and **AC-6** (Least privilege), **ISO 27002 controls on access control**, and **PCI DSS Req. 7** (restrict access to need-to-know). Masking and limiting view of data supports privacy by design (GDPR Art.25).
+- **Integrity (Ledger):** Maps to **NIST SI-7** (Integrity of software and information) or **AU-10** (non-repudiation/tamper-evidence of logs) – ledger provides integrity of data. It also supports **ISO 27001 A.8** (Integrity of data) and could be cited in compliance reports to demonstrate strong integrity controls (useful in financial audit contexts).
+- **Key Management:** If keys are used (for TDE or Always Encrypted), **NIST KM-2** (Key Management) and **PCI DSS Req. 3.5/3.6** (secure key management practices) would apply. Auditors should verify that master keys and certificates are protected (e.g. TDE master key is encrypted by service master and ideally backed up securely, not stored with code).
+
+By analyzing these security measures, the audit verifies not only that weaknesses are addressed, but also that the **organization is leveraging SQL Server’s security capabilities effectively**. If certain features are not used, the audit report may recommend their adoption where appropriate (for instance, suggesting Always Encrypted for highly sensitive personal data fields to strongly limit exposure in compliance with GDPR’s data protection principles).
+
+## 7. Access Control Review
+
+The Access Control Review assesses **how access to the database is restricted and managed**, both at the network level and within SQL Server. This ensures that only authorized systems and users can reach the database, and once connected, that they have appropriate permissions.
+
+- **Network Access Controls:** Examine firewall settings and network architecture around the SQL Server. The server should reside in a secure network segment (e.g. behind a firewall, not directly exposed to the internet). Confirm that **only approved hosts** (application servers, management jump boxes, etc.) can connect to the SQL service on the specified port. For example, firewall rules might restrict port 1433/CustomPort to specific application IPs. In cloud environments, this might be security groups or NSGs. This aligns with **PCI DSS Requirement 1** (restrict inbound/outbound traffic to what's necessary) and **NIST SC-7 (Boundary Protection)**. Document any exposure (if the DB is accessible broadly within an internal network or externally) and recommend tightening to the principle of least access.
+
+- **SQL Listener Configuration:** If the SQL Server supports only trusted connections (Windows Authentication), ensure no fallback to less secure protocols is allowed. If the server must allow SQL logins, ensure it’s not configured to allow anonymous or guest connections. Check that the built-in **guest user** in each database is disabled or has no permissions in user databases (CIS 3.2 requires guest user connect permission revoked in all except necessary dbs) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=Mode%27%20%20%20%28Automated%29,Automated)) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=3,53)). The **guest account** should be removed from or denied in databases where it isn’t needed, to prevent unintended public access to data.
+
+- **Principle of Least Privilege (High-Level):** Ensure that **only authorized personnel** have access to the SQL Server at the administrative level. List out who has sysadmin rights on the instance (this includes members of the sysadmin fixed server role, which in Windows-auth environments will include members of the local Administrators group unless removed). According to best practices, the local Administrators group should not have implicit access (by default SQL 2019+ doesn’t add them, but older instances might) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=3,69)). Domain Admins or other high-level groups should also not be provisioned as logins. CIS specifically recommends removing Windows BUILTIN\Administrators and other Builtin groups from SQL Server logins ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=3,69)). Only dedicated DBA accounts should have sysadmin privileges. Document the accounts with sysadmin and ensure each is necessary and traceable to a real person or service.
+
+- **Application Access Accounts:** Identify how applications connect to the database. The best practice is that each application or service uses a dedicated service account (AD account or SQL login) with only the minimum rights needed (e.g. an account that only has exec rights on certain stored procs and read/write on necessary tables, rather than db_owner). Check for any use of shared accounts or generic logins used by multiple applications or users – this is discouraged because it hampers accountability (violates PCI DSS 8.5 which requires unique IDs) and often leads to over-privileged accounts. If any generic or shared accounts exist, flag them for review and potential replacement with individual accounts or application-specific accounts.
+
+- **Segregation of Duties:** Assess whether administrative duties are segregated. For example, the DBAs who manage the infrastructure might not all need full access to the data. In some organizations, security administrators manage logins and auditing, whereas DB developers only get data reader/writer roles. Check if any role-based segregation is implemented (like a role for security admin, a role for operations). This can map to **NIST AC-5 (Separation of duties)** and is also mentioned in ISO. If everyone has all permissions, recommend introducing some segregation (especially in larger teams or regulated contexts).
+
+- **Physical and OS Access:** While focusing on the database, consider that anyone with OS-level access (server admin) could potentially stop the database or copy database files. Ensure that physical access to servers (or access to VMs) is limited to authorized admins. This is more of a datacenter/IT general control (ISO physical security, PCI Req 9 for physical) but should be mentioned if relevant—especially for standalone servers in smaller orgs, the DBA might also control the OS. Confirm that appropriate controls (like screen locks, jump server usage) are in place for those who access the DB server at OS level.
+
+In summary, this review ensures a **multi-layered access control**: network-layer restrictions, instance-level login controls, and appropriate assignment of privileges. 
+
+**Mappings to Standards – Access Control:**
+
+- **CIS Benchmarks:** Section 3 of CIS (Authentication and Authorization) provides many related checks, e.g., Windows Auth mode only (3.1), removing guest access (3.2) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=Mode%27%20%20%20%28Automated%29,Automated)), removing unnecessary logins like BUILTIN groups ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=3,69)), and ensuring least privilege on public role and service accounts ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=3,msdb%20%20%20%20database)).
+- **NIST 800-53:** Relevant controls include AC-3 (Access Enforcement), AC-6 (Least Privilege), AC-17 (Remote Access, if DB is accessed remotely), and AC-2 (Account management, ensuring accounts are authorized and periodically reviewed).
+- **ISO/IEC 27001:2022:** Corresponding controls would be around user access management and network access control (previously A.9 and A.13 in ISO 27002:2013). ISO emphasizes that access to networks and systems should be restricted on a need-to-use basis.
+- **GDPR/CCPA:** Article 32 calls for measures to ensure confidentiality of personal data – restricting access achieves that. CCPA similarly expects companies to restrict access to personal information as part of “reasonable security” practices.
+- **PCI DSS:** Requirement 7 states to restrict access to cardholder data by business need-to-know (least privilege), and Requirement 8 covers identifying and authenticating users (unique IDs, no shared accounts). Our checks in this section enforce those principles (no shared/generic accounts, least privileges, etc.). Network restrictions map to Requirement 1 (firewall) and Requirement 11.3 (penetration testing should validate these controls as well).
+
+We will delve deeper into specific user roles and privileges in the next section. Here, we set the stage that **only the right people and components can get to the database, forming the first line of defense**.
+
+## 8. Authentication Mechanism Review
+
+This part of the audit reviews **how users authenticate to the SQL Server**, including password policies, Windows integration, and any multi-factor arrangements. Strong authentication is critical to prevent unauthorized access.
+
+- **Authentication Mode:** Confirm that SQL Server is configured for **Windows Authentication Mode** (Integrated) wherever possible. CIS Benchmark recommends using Windows Authentication only (not Mixed Mode) to leverage Active Directory’s stronger authentication controls ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=3,Server)). Windows Auth ensures password policies and possibly multi-factor (if AD is tied to smartcards or Azure AD) are applied externally, and it avoids storing passwords in SQL. If Mixed Mode is enabled (which allows SQL logins), ensure there is a business justification (e.g. supporting legacy applications or non-domain clients). For any SQL authentication in use, scrutinize those accounts closely.
+
+- **Password Policy and Complexity:** For SQL logins that do exist, verify that **password complexity, expiration, and change requirements** are enforced. SQL Server can enforce Windows-like password policies on SQL logins (if the server is on a Windows OS joined to a domain or with local policies). Ensure options **CHECK_POLICY = ON** and **CHECK_EXPIRATION = ON** are set for all SQL logins, especially those with high privileges ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=,71)) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=4%20%20%20%20,71)). CIS specifies to enable these for all SQL authenticated logins and particularly for sysadmin role logins ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=,71)). Also, when creating logins, **MUST_CHANGE** (force password change on next use) should be ON for interactive logins (CIS 4.1) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=,71)). These settings map to NIST IA-5 (Authenticator Management) and ISO’s password management controls. If any SQL login is found with a weak or blank password (which should not happen in a well-managed system), it’s an immediate critical finding.
+
+- **Multi-Factor Authentication (MFA):** Check if any form of MFA is used for database access, especially for administrators. While SQL Server doesn’t natively support MFA for direct logins, organizations might enforce MFA at the OS login or use Azure Active Directory authentication. Notably, SQL Server 2022 allows **Microsoft Entra ID (Azure AD) authentication** for on-prem SQL via Azure Arc ([What's new in SQL Server 2022 - SQL Server | Microsoft Learn](https://learn.microsoft.com/en-us/sql/sql-server/what-s-new-in-sql-server-2022?view=sql-server-ver16#:~:text=Ledger%20The%20ledger%20feature%20provides,to%20connect%20to%20SQL%20Server)). If the environment is Azure Arc-enabled and using Azure AD auth for SQL, this is a strong practice to mention – it means AD credentials (potentially with MFA via conditional access) are used to get a token for SQL login ([What's new in SQL Server 2022 - SQL Server | Microsoft Learn](https://learn.microsoft.com/en-us/sql/sql-server/what-s-new-in-sql-server-2022?view=sql-server-ver16#:~:text=Ledger%20The%20ledger%20feature%20provides,to%20connect%20to%20SQL%20Server)). Otherwise, if only Windows Auth is used, one can assume domain controllers could enforce MFA for Windows logons (outside the DB scope). For remote DBA access, consider recommending jump server with MFA or VPN with MFA to indirectly ensure multiple factors protect access to the DB.
+
+- **Service Account Authentication:** Ensure that any services or applications connecting to SQL use proper service principals. For example, if an IIS app uses a service account to connect to SQL, that account’s credentials must be securely stored (not hard-coded in plaintext). Sometimes integrated security (Kerberos delegation) can be used so that the app doesn’t handle DB creds at all. This is more of an architectural review; if found, document how service accounts authenticate (e.g. via connection strings). Recommend rotating service account passwords periodically (and updating connection strings accordingly) in line with best practices (PCI requires service account credentials to be changed periodically as well if they are used).
+
+- **Login Auditing Settings:** As part of authentication review, note the SQL Server’s **login auditing** configuration. SQL Server can log failed and/or successful login attempts. According to CIS, at minimum “failed logins” should be audited to detect brute force attempts ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf)) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=At%20%20%20%20,Audit%3A%20EXEC%20xp_loginconfig%20%27audit%20level)). Check `xp_loginconfig 'audit level'` or the server properties – if set to “failed logins only” (default) or “both failed and successful”. CIS suggests using the newer Audit feature to capture successful logins rather than enabling it at the error log level (to avoid noise) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf)). Effective login auditing ties into detection of authentication issues and aligns with NIST AU-2 (audit events) and PCI Req. 10 (logging). We will cover auditing in detail later, but it’s noted here because it directly reflects on monitoring authentication.
+
+- **Default Accounts and Credentials:** We already addressed disabling `sa`. Also ensure other default or sample accounts are removed. E.g., ensure there is no “sa” user left enabled in any user database (sometimes applications create an “sa” user in their own database which is not the same as server login but could be a leftover concept – likely not in modern systems). Likewise, if any default credentials or patterns were used by installers (rare in SQL Server, but some applications that install on SQL might leave known accounts), ensure they are changed. This is akin to PCI’s rule of changing default passwords on systems.
+
+**Mappings to Standards – Authentication:**
+
+- **CIS Benchmark:** Section 3 and 4 of CIS 2019/2022 cover authentication. CIS 3.1 (Windows Auth mode) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=3,Server)), 4.2 and 4.3 (CHECK_EXPIRATION & CHECK_POLICY ON) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=,71)), etc., directly map to these checks.
+- **NIST SP 800-53:** IA-2 (User Identification and Authentication) requires unique user identification and authentication for organizational systems. IA-2(1) through IA-2(8) cover various aspects like using multifactor for privileged accounts (which would apply to DBAs ideally). IA-5 covers password complexity, history, and management. AC-7 covers unsuccessful login attempts (lockout policy) – SQL Server doesn’t have an internal lockout for SQL logins by default, so reliance on external controls or monitoring is noted.
+- **ISO 27001/27002:** There are controls for secure authentication, password management (such as requiring strong passwords, regular change or review, and MFA for sensitive systems). The 2022 update includes more on authentication technologies. For example, Control 5.15 in ISO 27002:2022 might be about authentication (if memory serves, new controls added around secure authentication).
+- **PCI DSS:** Requirement 8 is very pertinent – use of unique IDs and secure authentication. PCI 8.3 requires MFA for admin access to the cardholder data environment (which would include DBAs if the DB has card data). So if this is a PCI environment, MFA is mandated for any administrative access to databases holding card data. Also PCI 8.6 (in v4.0) requires passwords meet complexity and rotation (though PCI v4.0 has moved away from fixed 90-day changes to allow risk-based, but still expects strong auth).
+- **GDPR/CCPA:** These laws don’t specify auth methods but require protecting personal data. Strong authentication (password controls, etc.) is an expected measure to prevent unauthorized data access. A data breach due to weak or stolen credentials could be deemed non-compliance with GDPR Art.32. Under CCPA, there’s legal risk if lack of reasonable auth controls leads to a breach.
+
+Overall, the authentication review ensures **all access to the database is authenticated using robust methods** and that account credentials are managed securely. Coupled with the access control review, it forms a comprehensive look at “who can get in, and how”.
+
+## 9. User Roles and Privileges Review
+
+Building on the access control and authentication sections, here we dive deeper into the **authorization inside the database** – reviewing the roles and permissions assigned to users and ensuring the principle of least privilege is enforced at a granular level.
+
+- **Server Roles and Server-Level Permissions:** Enumerate membership of fixed server roles: sysadmin, securityadmin, dbcreator, etc. Typically, **sysadmin** should be very limited (ideally only dedicated DBA accounts as noted). Roles like **securityadmin** (can manage logins) or **serveradmin** (server config) should also be reviewed – sometimes junior DBAs might be given these instead of sysadmin. Ensure those assignments are minimal and appropriate. Remove any unnecessary memberships. For example, if a user was temporarily added to sysadmin for troubleshooting and forgotten, that’s a finding. CIS specifically calls out ensuring no unauthorized privileges are granted and that the public role has only default permissions ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=3,msdb%20%20%20%20database)). Also check server-level GRANTs: use `SELECT * FROM sys.server_permissions` to see if any unusual server permissions were granted outside of roles (like someone granted CONTROL SERVER or ALTER ANY DATABASE directly). Those should be justified or revoked.
+
+- **Database Roles and Ownership:** For each database in scope, review role membership and object ownership. Key points: No regular user should be **db_owner** on a production database (except DBAs). Application accounts typically should have a custom database role with specific rights, rather than db_owner. If any user accounts (especially ones mapped to individuals or applications) are found in db_owner or db_accessadmin roles, question if that’s needed. Use of built-in roles like db_datareader or db_datawriter is okay for certain broad access needs, but ensure they are used only if appropriate (often better to grant explicit schemas/tables rather than whole DB read). Check if any user is the owner of a database (other than `sa` or a dedicated owner account) – database owner can have implicit permissions. It’s common to see an application login set as db_owner so it can manage the schema; if this is the case, highlight it and suggest least privilege alternatives if possible (maybe restrict it after deployment, etc.).
+
+- **Granular Permissions on Objects:** Examine permissions at the schema and table levels. We want to see that users/roles have only the rights they require. For instance, an accounting user group might have SELECT on financial tables and Exec on certain sprocs, but nothing else. Look for overly broad grants like GRANT SELECT ON *.* TO some user (which would be bad). Also ensure the **public role** (which every user inherits) does not have extra permissions. CIS 3.8 advises that only the default permissions by Microsoft exist for public ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=3,msdb%20%20%20%20database)). Some systems mistakenly grant things to public which then every user gets – this should be corrected. In msdb, check that public doesn’t have execute on dangerous stored procs (CIS 3.11 specifically says public in msdb should not have access to SQL Agent proxies) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=3,69)).
+
+- **Orphaned Users and Stale Roles:** Identify any **orphaned users** in databases (users that exist in a database but their corresponding server login has been removed). CIS 3.3 recommends dropping orphaned users ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=Server%20%20databases%20%20,Service%20Account%20is)) to prevent any confusion or potential reuse. Also look for unused roles – if a role exists but has no members or is not used for permissions, consider it technical debt that should be cleaned up (to avoid someone accidentally using it in the future without understanding its intent). Ensure roles and users have clear naming that indicates purpose, making audits easier.
+
+- **High-Privilege Users Monitoring:** For accounts that *do* have high privileges (like sysadmin or db_owner), ensure there are controls to monitor their activity (this ties into auditing). While not a configuration per se, the presence of many high-privileged users should correspond with compensating controls like detailed auditing of their actions (we cover audit logs next). In compliance terms, if segregation of duties can’t be fully enforced (e.g. a small team of DBAs all need full rights), increased monitoring is expected. This is relevant for PCI (log administrator actions) and ISO/NIST (audit events of privileged operations).
+
+- **New SQL Server 2022 Roles:** Note if the environment is SQL 2022, there are new built-in roles like **SQL Security Auditor** and **SQL Performance Monitor** ([What's new in SQL Server 2022 - SQL Server | Microsoft Learn](https://learn.microsoft.com/en-us/sql/sql-server/what-s-new-in-sql-server-2022?view=sql-server-ver16#:~:text=Newly%20introduced%20SQL%20Performance%20Monitor,using%20Microsoft%20Purview%20access%20policies)). These roles are designed to grant read-only access to security or performance metadata, aligning with least privilege for auditors/monitoring. If these are being used (or if there’s a need for read-only monitoring access), highlight that as a good practice. For example, giving a security team member the **SQL Security Auditor** role allows them to read logs and configurations without having full control, which is a positive for separation of duties ([What's new in SQL Server 2022 - SQL Server | Microsoft Learn](https://learn.microsoft.com/en-us/sql/sql-server/what-s-new-in-sql-server-2022?view=sql-server-ver16#:~:text=Newly%20introduced%20SQL%20Performance%20Monitor,using%20Microsoft%20Purview%20access%20policies)).
+
+- **Mapping to Policies/Standards:** Ensure that the privileges in the database align with the organization’s access control policy. For instance, if policy says developers should not have access to production data, check that no developer accounts exist on the prod DB. If policy says DBAs must use individual accounts (not shared), verify that (and that those accounts are tied to individuals). Essentially, the implementation should reflect both best practice and any specific internal rules.
+
+**Mappings to Standards – Roles & Privileges:**
+
+- **CIS:** Multiple points in CIS benchmark speak to least privilege. E.g., CIS 3.8 public role permissions ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=3,msdb%20%20%20%20database)), 3.9/3.10 removing Builtin/Windows group logins ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=3,69)), and 2.13/2.14 about limiting `sa`. All reinforce least privilege.
+- **NIST:** AC-6 (Least Privilege) is directly applicable – it even calls for organizations to review privileges periodically and adjust. AC-2 (Account management) also covers ensuring account privileges are appropriate and accounts are disabled/removed when not needed (orphaned users removal fits here). AC-5 (Separation of Duties) relates if certain roles (like Security Auditor) are used.
+- **ISO 27001:** In Annex A, the concept of user access provisioning and review (which was A.9.2.5 in old ISO 27001:2013 for review of user access rights) corresponds to periodically reviewing DB accounts and roles. The new ISO 27002:2022 likely has a control for privilege management (one of the 93 controls).
+- **PCI DSS:** Requirement 7 (need-to-know) and 8 (unique IDs, least privilege) come in here strongly. PCI would expect that if the DB contains card data, only a very limited subset of users can query those card tables (need to know), and those access grants are documented. Also Requirement 8.7 (I believe in v4.0) says to ensure that access is limited to only what’s required (similar to 7). PCI also requires periodic access reviews (Req 7.2.5 or around there in v4.0, to review user accounts and access).
+- **GDPR/CCPA:** By limiting privileges, the organization reduces the risk of unauthorized data disclosure. GDPR’s accountability principle means you should be able to demonstrate that only necessary personnel have access to personal data. If an EU regulator inquires, you should show that database permissions are restricted to those with a legitimate need – our audit of roles can provide that evidence or highlight gaps.
+
+In practice, this review often finds things like “excessive privileges granted to application roles” or “legacy accounts that still have access.” The remediation is usually to tighten those or remove them. The outcome is a **cleaner, more controlled access model**, which improves security and compliance standing.
+
+## 10. Audit Trail Review
+
+A critical part of any security audit is reviewing how well the **database activities are being logged and monitored**. The Audit Trail Review checks the configuration of auditing and logging on the SQL Server, and assesses whether the logs are sufficient, securely stored, and reviewed.
+
+- **SQL Server Auditing Configuration:** Determine if **SQL Server Audit** feature is in use. This feature (available in SQL 2008+ and improved in later versions) allows granular auditing of events (e.g., SELECTs on sensitive tables, changes to permissions, login events, etc.) with output to a file or Windows Event Log. If audits are configured, review the Audit Specification definitions: Which actions are being audited? Are both successful and failed logins audited? Are schema/object changes audited? Common good practice is to audit: schema changes (DDL), security changes (roles/permissions), login events, and data access on particularly sensitive tables. If the audit is writing to files, check that the files are secured (accessible only by admins) and that they are being archived/retained according to policy. If not using SQL Audit, check if **C2 Audit tracing** or **Common Criteria compliance** is enabled (older methods, rarely used now). At minimum, some logging should be in place for logins and agent job executions, etc.
+
+- **Error Logs and Trace Files:** SQL Server Error Log should have a rotation such that enough history is kept. CIS recommends having a minimum number of error log files (e.g., keep 12 logs) so that if the server restarts frequently, you don’t lose history ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf)) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=EXEC%20xp_loginconfig%20%27audit%20level%27%3B%20A,SQL%20Server%20%20Errorlog)). Check the configured `max_errorlogs` setting (or via sp_cycle_errorlog usage). Also confirm that the default trace (which logs schema changes and certain events) is enabled ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=server%20%20access%20%20during,capture%20both)) – CIS 5.2 suggests “Default Trace Enabled” = 1 ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=)), which by default it is, but ensure it wasn’t turned off. The default trace provides a basic audit of schema changes, etc., that can be very useful in incident investigations.
+
+- **Login Audit Settings:** As mentioned in section 8, ensure at least Failed logins are being logged to the SQL error log ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf)) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf)). If currently set to “None”, that’s a misconfiguration – it should be “Failed” or “Both” (Both might clutter error log, but if no other auditing is in place, capturing successful logins too might be advisable up to a retention plan). Given modern requirements, capturing both failed and successful login attempts via a combination of error log (failed) and Audit (successful) is ideal ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf)).
+
+- **Integrity and Protection of Logs:** Assess how logs are protected from tampering. The audit logs (whether file or Windows Event) should be accessible only to administrators. If SQL Audit writes to file, those files should be on a secure drive with limited ACLs. If writing to Windows Security Event Log, ensure the Windows logs are secured and that log sizes are sufficient to not overwrite quickly. The **SQL Server Ledger** feature, if implemented for auditing, could be used to cryptographically attest to the logs, but usually ledger is more for data tables. However, note if any ledger concept is applied to audit data itself (perhaps storing hashes of logs). PCI DSS requires audit trails to be rendered tamper-evident (Req 10.5): using WORM media or similar, or at least strict ACLs and hashing. Our audit should verify compliance by checking that DBAs cannot easily modify or delete audit records without detection (for example, if using Windows Event Log for auditing, even DBAs might not have rights to clear security log; if they have OS admin, that’s another story – thus external log collection might be needed).
+
+- **Review of Audit Trails:** Logging is only as good as its usage. Inquire or check if there is a process to review logs regularly. Are there alerts set up for certain events (e.g., alert on repeated failed logins indicating a brute force attempt)? Does the organization use a SIEM to aggregate SQL logs and flag anomalies? From a compliance perspective, PCI requires daily review of security events, and NIST/ISO also expect regular log monitoring (AU-6 in NIST: audit review, analysis, and reporting). If evidence is available (like tickets or reports of log review), take note. If not, recommend establishing procedures to review and respond to logged incidents.
+
+- **Retention:** Verify how long audit logs are retained. This should meet any regulatory requirements (for instance, PCI DSS requires at least 1 year of log retention, with 3 months immediately available). GDPR doesn’t specify log retention, but since logs could contain personal data (like user IDs which might be personal), retention should follow data minimization – only keep as long as necessary. Find out if logs are archived to a central system or backed up for forensic purposes.
+
+- **Database-level Audit (Trigger-based or Custom):** See if any custom auditing mechanisms exist within the database, such as triggers on tables to log changes (e.g., an UPDATE trigger writing to an audit table). If such audit tables exist, treat them as sensitive: ensure they aren’t editable by normal users (only append), and check if they are being purged appropriately. Custom audit trails should be consistent with overall policy. Also, these might need to be included in backup/restore plans (ensuring the audit trail is backed up).
+
+- **New Feature – Ledger for Auditing:** SQL 2022’s ledger was mentioned in the compliance section – it can help with audit trails. If the organization uses **ledger tables to log transactions or critical changes**, verify their usage. For instance, a ledger table could be used instead of a regular audit table for a highly sensitive log, providing an inherent tamper-evidence. Ensure understanding of how to verify the ledger (e.g. generating a digest and storing it externally). If not used, one could recommend considering ledger for particularly sensitive auditing (like financial transaction logs that must be provably unmodified).
+
+**Mappings to Standards – Audit Trails:**
+
+- **CIS:** Section 5 of the CIS benchmark covers auditing and logging (as we saw: error logs, login audit, etc.) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf)) ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=server%20%20access%20%20during,capture%20both)).
+- **NIST SP 800-53:** AU-2 (Auditable Events), AU-3 (Content of Audit Records), AU-6 (Audit Review and Monitoring), AU-9 (Protection of Audit Information), AU-11 (Audit Record Retention) are all relevant. If ledger is used, that could be seen as enhancing AU-10 (Non-repudiation) by ensuring the authenticity of records ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=,SQL%20Server%20Ledger%20if%20applicable)).
+- **ISO 27001:** Has controls for logging and monitoring (used to be A.12.4 in 2013 version, likely updated number now). It requires event logging, administrator and user activities to be logged, and logs to be protected.
+- **PCI DSS:** Requirement 10 is entirely about logging and monitoring. It specifies logging of user activities (esp. admin and access to card data), audit trail integrity, daily review of logs, and retention. Our audit of SQL logs would directly inform PCI compliance in those areas.
+- **GDPR:** While not explicit, logs can help demonstrate compliance and detect breaches. Article 33/34 (breach notification) indirectly require organizations to know when they had a breach – logging helps with that. Also GDPR Recital 49 allows processing of personal data for network and information security, which would include creating logs to prevent unauthorized access. So having proper logging is part of demonstrating accountability.
+
+By reviewing and strengthening audit trails, the organization ensures it has **visibility into database activities and potential security incidents**. A well-configured audit trail acts as a deterrent (insiders know their actions are recorded) and an invaluable tool during investigations. As our audit framework, we provide guidance to achieve that state, e.g. “audit both successful and failed logins” ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf)) and “ensure logs are tamper-evident (consider SQL Ledger or similar) ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=,SQL%20Server%20Ledger%20if%20applicable)).”
+
+## 11. Backup and Recovery Procedures Review
+
+This section audits the processes and configurations for **database backup, restoration, and high availability**, ensuring that the organization can recover data after incidents and that backups are protected.
+
+- **Backup Schedule and Coverage:** Verify that regular backups are being performed for all critical databases. Ideally, there should be a documented schedule (full, differential, log backups as applicable) that meets the Recovery Point Objective (RPO) of the business. Check SQL Server Agent jobs or maintenance plans for backup jobs. For each in-scope database, note the last backup time available and whether it meets policy. If any important database is not backed up or has a very outdated backup, that’s a major issue. This aligns with **NIST CP-9 (Backup)** which requires information system data to be backed up and with ISO’s requirements for backup (previously A.12.3). It’s also an implied part of GDPR Art.32(1)(c) – ability to restore availability of personal data ([Art. 32 GDPR – Security of processing - General Data Protection Regulation (GDPR)](https://gdpr-info.eu/art-32-gdpr/#:~:text=1,account%20shall%20be%20taken%20in)) ([Art. 32 GDPR – Security of processing - General Data Protection Regulation (GDPR)](https://gdpr-info.eu/art-32-gdpr/#:~:text=2,a%20physical%20or%20technical%20incident)).
+
+- **Backup Protection:** Assess how backup data is protected. Backups often contain the entire database (including sensitive data), so they must be safeguarded. If backups are stored on disk, are they secured (NTFS permissions restricting access)? If moved off-server, are they encrypted? SQL Server can encrypt backups natively (using a certificate or asymmetric key). If this is being done, verify encryption settings (algorithm, key length) and key storage (the certificate used for backup encryption should be backed up and secured as well). If backups go to tape or cloud storage, check policies for encryption at rest there. Many organizations now send backups to offsite or cloud – ensure transit is secure (HTTPS or VPN) and storage is locked down. From a compliance standpoint, **PCI DSS** and **HIPAA** etc. require backups to be secured just like production data. GDPR would consider lost unencrypted backup tapes a data breach.
+
+- **Recovery Testing:** Inquire if the organization regularly tests restoring backups. It’s important not just to have backups, but to verify they can be restored (integrity). Check if any recent database restore tests are logged or if any consistency checks on backups (like VERIFYONLY or trial restores on a staging server) are performed. Regular testing aligns with **GDPR Art.32(1)(d)** about regularly testing security measures (including backup/restore) ([Art. 32 GDPR – Security of processing - General Data Protection Regulation (GDPR)](https://gdpr-info.eu/art-32-gdpr/#:~:text=1,account%20shall%20be%20taken%20in)) and with ISO’s emphasis on testing backup recovery. If there’s no evidence of restore testing, recommend instituting periodic tests.
+
+- **High Availability and Replication:** Determine what high availability (HA) or disaster recovery (DR) features are in use: **Always On Availability Groups (AGs)**, Failover Cluster Instances, Log Shipping, Replication, etc. If an Always On AG is used, verify its configuration: synchronous vs asynchronous replicas (affecting data loss potential), automatic failover setup, and listener configuration. Check that secondary replicas are properly secured (they should have the same security settings). Also, review that **AG endpoints** use encryption (they communicate over endpoints that should ideally be set to require encryption). If using Failover Cluster, check that both nodes have consistent SQL configurations and that cluster service accounts are secure. For Log Shipping/Replication, ensure the channels are secure (log shipping over network should be on secure network or using IPSec/VPN, etc.). The presence of HA can significantly improve availability (fulfilling part of continuity requirements). If no HA and the database is critical, note that as a potential single point-of-failure risk.
+
+- **SQL Server 2022 “Contained Availability Groups”**: If the environment is SQL 2022 and using AGs, check if they implemented **Contained AGs** ([What's new in SQL Server 2022 - SQL Server | Microsoft Learn](https://learn.microsoft.com/en-us/sql/sql-server/what-s-new-in-sql-server-2022?view=sql-server-ver16#:~:text=Overview%20of%20the%20Managed%20Instance,Always%20On%20availability%20group%20that)). This new feature keeps user and login objects within the AG, simplifying failover (no need to manually sync logins, SQL Agent jobs, etc., across replicas) ([What's new in SQL Server 2022 - SQL Server | Microsoft Learn](https://learn.microsoft.com/en-us/sql/sql-server/what-s-new-in-sql-server-2022?view=sql-server-ver16#:~:text=Overview%20of%20the%20Managed%20Instance,Always%20On%20availability%20group%20that)). If used, it’s a plus for resilience and consistency of security after failover. If not used, and they have AGs, often DBAs have to script login/permission synchronization – verify they do so to avoid a scenario where after failover, application logins fail due to missing SQL logins on the secondary.
+
+- **Retention and Archiving:** Check how long backups are retained and if older backups are archived securely. This intersects with data retention policies (for instance, GDPR says not to retain personal data longer than needed; if backups contain old data, some orgs set a limit on backup retention or have a process to delete data from backups after a period). Usually, backup retention is driven by business/operational needs, but if sensitive data must be purged, that’s a complex topic with backups. We note the retention to ensure it aligns with any policies.
+
+- **Disaster Recovery Plan:** Beyond the technology, is there a documented **DR plan** for the databases? For example, in case of a major site outage, do they plan to restore from backups in a secondary site, or use AG failover to a DR site? Verify the plan and whether it has been tested (tabletop exercise or actual failover test). This aligns with **NIST CP-4 (Contingency Plan Testing)** and ISO’s business continuity controls. Also, GDPR Art.32(1)(c) explicitly calls out the ability to restore availability in a timely manner in event of a physical/technical incident ([Art. 32 GDPR – Security of processing - General Data Protection Regulation (GDPR)](https://gdpr-info.eu/art-32-gdpr/#:~:text=2,a%20physical%20or%20technical%20incident)) – having a well-tested DR plan meets this.
+
+**Mappings to Standards – Backup & Recovery:**
+
+- **NIST SP 800-53:** CP-9 (Backup), CP-10 (Recovery and Reconstitution) are the main ones. Also CP-2 (Contingency Planning) and CP-4 (Contingency Plan Testing). From a security integrity perspective, SC-13 (cryptographic protection) covers encrypting backups, and MP-4 (Media Storage) covers protection of backup media.
+- **ISO 27001:** There is a control for backup (in 2013 it was A.12.3.1). Also various controls in the business continuity domain (not exactly in 27001 but related standards) cover disaster recovery. ISO 27031 or others might be referenced but for our scope, mention backup and recovery in ISO context.
+- **CIS Benchmarks:** While CIS SQL benchmark doesn’t delve into backup, CIS Controls (like IG2) call for having backups and protected data recovery (CIS Control 10 Data Recovery). This could be noted as well.
+- **PCI DSS:** While PCI is focused on security, not operations, it does indirectly require backups as part of standard IT operations (and explicitly, if logs are kept, they must be backed up for a year). PCI requires secure storage of media (Req 9.5-.8 for physical media security). If cardholder data is stored in backups, those fall in scope – encryption or physical security required similarly as the live data.
+- **GDPR/CCPA:** We addressed GDPR’s requirement for availability and restore capability. Both GDPR and CCPA will treat a loss of data (without backup) as a potential incident, so backups are essential. Additionally, if a person invokes the right to erasure (GDPR Art.17), backups complicate that – but that’s more a legal/ policy issue (some companies have to document that complete erasure from backups is not immediate but data won’t be restored unless needed, etc.). Not directly our audit’s technical scope, but worth noting if privacy officers ask.
+
+In summary, this review assures that the **database can be recovered in case of failure or compromise**, and that those backups do not themselves become a security weakness. It blends security (protecting backups) with operational resilience (having backups and HA for minimal downtime).
+
+## 12. Patch Management Review
+
+Here we assess whether the SQL Server software (and related system components) are kept up-to-date with security patches and updates – a critical part of maintaining a secure environment.
+
+- **SQL Server Version and Patches:** Identify the current version and build of SQL Server on each instance (e.g., SQL Server 2019 CU16, or SQL Server 2022 CU5, etc.). Compare this against the latest available updates from Microsoft. SQL Server is updated via Cumulative Updates (CUs) and occasional GDRs/security hotfixes. As of 2025, for example, SQL 2019 should be on a CU from late 2024 or 2025, and SQL 2022 similarly. If the instance is **missing recent CUs or known security patches**, flag it. NIST mandates prompt remediation of vulnerabilities (SI-2: Flaw Remediation). Microsoft often announces vulnerabilities in SQL Server that get fixed in CUs; being many months behind could expose the instance to known exploits. Check also the **OS patch level** (since Windows Server vulnerabilities could indirectly affect the SQL Server). For compliance, PCI DSS 6.3.3 (or 11.3.1 in older version) required addressing vulnerabilities and installing critical patches within a month (for high-risk).
+
+- **Patch Management Process:** Inquire about how patches are managed. Does the organization subscribe to Microsoft security bulletins for SQL? Is there a regular schedule (e.g., apply CUs in a test environment, then production quarterly)? Evidence of a process might include change management tickets for updates or WSUS reports for Windows patching. A mature process will have timely deployment of important patches and documentation of exceptions (if a patch can’t be applied due to compatibility, then compensating controls are in place until it can be). Ensure that not only SQL Server engine but related components (ODBC drivers, .NET frameworks used by SQL, etc.) are updated too if applicable.
+
+- **Database Platform Maintenance:** Check if other components like SSMS (client tools) or .NET (if CLR used) or Java (if using PolyBase) are updated. While these are ancillary, an outdated SSMS or other admin tool could be a risk on an admin’s workstation. If the scope allows, mention that as part of overall patch hygiene.
+
+- **Third-Party Software:** If third-party extensions or tools are installed on the SQL Server (for example, certain backup agents, monitoring agents, or CLR assemblies from third parties), ensure those are also up to date. They might introduce vulnerabilities otherwise.
+
+- **Configuration Baseline Updates:** Patch management isn’t only about software versions, but also ensuring configuration templates stay updated. For instance, when new best practices emerge (CIS updates its benchmark or Microsoft adds a new security feature in an update), the team should adapt. This is more abstract, but seeing an outdated configuration (like still using older TLS) might hint that they haven’t kept up with evolving guidance. 
+
+- **Use of Security Tools:** Note if the organization uses any vulnerability assessment tools on the SQL Server. Microsoft’s Defender for SQL (as part of Azure Defender) can do vulnerability scans that identify misconfigs and missing patches ([What's new in SQL Server 2022 - SQL Server | Microsoft Learn](https://learn.microsoft.com/en-us/sql/sql-server/what-s-new-in-sql-server-2022?view=sql-server-ver16#:~:text=New%20feature%20or%20update%20Details,access%20policies%20to%20any%20SQL)). If a scan report is available, review it for any unpatched issues. Other tools like Nessus or Rapid7 might scan the server and pick up if SQL is unpatched – see if those are used and findings addressed.
+
+**Mappings to Standards – Patch Management:**
+
+- **CIS Benchmarks/Controls:** While the SQL CIS benchmark doesn’t specifically say “apply patches”, CIS Control 7 (Continuous Vulnerability Management) in CIS Critical Security Controls maps to having a patch process. The presence of up-to-date software is indirectly checked by things like version numbers in audit results.
+- **NIST SP 800-53:** SI-2 (Flaw Remediation) requires organizations to track and install security updates. SI-2(2) even suggests automated mechanisms to do so. Also CM-3 (Configuration change control) covers changes like applying patches to production.
+- **ISO 27001:** Has controls for patch management and technical vulnerability management (in 2013, A.12.6.1). The 2022 update also has a specific control for managing vulnerabilities.
+- **PCI DSS:** Requirement 6.3.1/6.3.2 in v4.0 (previously 6.2) says you must install critical patches within one month of release, and all other patches within an appropriate timeframe (3 months recommended). If the SQL Server hosts card data, being behind on patches would violate this. They also require a process to identify new vulnerabilities (via mailing lists, etc.) and a risk ranking for those.
+- **GDPR/CCPA:** Not explicit, but regulators have penalized companies for not patching known vulnerabilities that led to breaches (considered lack of appropriate security). So maintaining patches is part of “state of the art” security measures under GDPR Art.32 ([Art. 32 GDPR – Security of processing - General Data Protection Regulation (GDPR)](https://gdpr-info.eu/art-32-gdpr/#:~:text=1,of%20processing%20systems%20and%20services)).
+
+In short, the audit will list the current patch level, note any gaps (e.g. “SQL Server is 1 year out of date, missing fixes for known elevation of privilege vulnerabilities ([What's new in SQL Server 2022 - SQL Server | Microsoft Learn](https://learn.microsoft.com/en-us/sql/sql-server/what-s-new-in-sql-server-2022?view=sql-server-ver16#:~:text=New%20feature%20or%20update%20Details,access%20policies%20to%20any%20SQL))”), and recommend a plan to update. Keeping systems patched is one of the **simplest yet most effective defenses** against many threats.
+
+## 13. Incident Response Plan Review
+
+Even with good preventative controls, organizations must be prepared to respond to security incidents, including those involving the database. This section reviews the **incident response (IR) plans** related to the SQL Server and data breaches.
+
+- **Database Incident Scenarios:** Check if the IR plan (or the security incident playbooks) covers database-specific incidents. For example, scenarios such as *suspected SQL injection breach*, *malicious insider accessing data*, *ransomware affecting the database*, or *database unavailable (DoS or crash)* should be contemplated. An incident response plan should outline steps to take in these situations: who to contact (DBA on call, security officer), how to isolate the system (e.g. network isolation, locking accounts), evidence preservation (not shutting off server until forensic imaging if needed), etc.
+
+- **Breach Detection and Reporting:** Verify that there are procedures for detecting and reporting a breach involving the SQL Server. If abnormal activities are logged (from section 10, audit trails), does the plan specify how security or DB admins respond? For instance, if multiple failed logins indicate a brute force attempt, is there a process to escalate and block an IP or account? If a data breach is confirmed (say personal data was exfiltrated), does the plan address legal/regulatory notification requirements (GDPR 72-hour breach notification rule, CCPA notification to affected CA residents)? The plan should include involvement of legal/compliance teams in such cases.
+
+- **Roles and Responsibilities:** Identify the team or individuals responsible for handling DB security incidents. Typically, this will involve DBAs, the InfoSec team, maybe infrastructure teams, and management. Ensure it’s clear who leads the response when the database is the target. There should be a communication plan (e.g., inform CISO and possibly authorities if needed). Check if there’s a **24/7 monitoring and on-call rotation** for critical databases – incidents don’t always happen during business hours.
+
+- **Integration with Corporate IR:** The database IR should not exist in a vacuum. It should be part of the broader incident response program. Thus, confirm that the database is included in corporate IR training and drills. For example, have they done a tabletop exercise involving a database breach? If yes, review the lessons learned and changes made. A mature IR process will update procedures based on past incidents or exercises ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=,IRP%20based%20on%20lessons%20learned)).
+
+- **Forensic Readiness:** Ensure that the necessary logs and tools are in place to investigate an incident. This ties back to audit trails – are logs detailed enough to trace an intruder’s actions? Also, is there a mechanism to quickly obtain a snapshot of the system for forensics (like VM snapshot or disk image) if needed without destroying evidence? Having audit logs centralized (so an attacker cannot erase them easily on the server) is part of forensic readiness. So is time synchronization (ensure server clocks are correct for log timestamps). This is often overlooked but is part of best practices (NIST AU-8, ISO also mentions clock sync).
+
+- **Post-Incident Actions:** Check that the plan includes **post-incident review** steps ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=,IRP%20based%20on%20lessons%20learned)). After a database security incident, the team should analyze what happened and update security measures to prevent recurrence (e.g., if an incident occurred because of a misconfiguration, then update the configuration standards; if due to slow patching, improve patch process). This creates a feedback loop into our audit process as well – our framework might be updated based on new threats or incidents observed.
+
+**Mappings to Standards – Incident Response:**
+
+- **NIST SP 800-53:** IR family – IR-4 (Incident Handling), IR-6 (Incident Reporting), IR-8 (Incident Response Plan). NIST also has 800-61 (Computer Security Incident Handling Guide) which provides good practices.
+- **ISO 27001:** Has controls for incident management (used to be A.16). Specifically, incident response planning, reporting incidents, learning from incidents.
+- **PCI DSS:** Requirement 12.10 requires an incident response plan for payment data breaches, including specific steps (like notifying payment brands, etc.). Even if not PCI, it’s a good template: define roles, detection, containment, analysis, eradication, recovery, and reporting.
+- **GDPR:** Article 33 and 34 impose breach reporting duties. An IR plan must account for quickly gathering info (which data was affected, how many subjects, etc.) to make those notifications. Failure to notify is a big compliance issue. CCPA has notification requirements as well (though no fixed 72-hour like GDPR, but promptly and with specifics).
+- **CIS Controls:** Control 17 (Incident Response) in CIS v8 covers having a plan and drills.
+
+In summary, the audit will comment on whether the organization is **prepared to effectively respond** if the SQL Server or the data it holds is compromised. If a formal plan exists, that’s good – perhaps just test its coverage. If not, a major recommendation will be to develop one, including mapping it to compliance requirements (e.g., who to notify in a breach).
+
+## 14. Application Security Review
+
+The security of the SQL Server is closely tied to the security of the applications that use it. This section provides a check on how applications interact with the database, ensuring that vulnerabilities at the application layer do not compromise the database.
+
+- **Use of Parameterized Queries:** Confirm that applications (web apps, APIs, reporting tools, etc.) interacting with the SQL Server use parameterized queries or stored procedures for database calls, rather than constructing SQL statements with string concatenation. This is aimed at preventing SQL injection. The auditor may not have direct code access, but evidence can be gathered by asking developers or reviewing any available code snippets/configs. If the application uses an ORM (like Entity Framework, Hibernate) or parameter binding, that’s typically safe. If dynamic SQL must be used (e.g., some search functionality), ensure the app sanitizes inputs properly. The presence of SQL injection vulnerabilities in an app can utterly undermine DB security, so this is a crucial check. Tools like OWASP Zap or Burp or even specific DB logs (unusual queries) might be referenced if available.
+
+- **Application Least Privilege:** Check that each application uses a dedicated **least-privileged database account**. This account should have only the rights needed for the app’s normal operations. For example, a public web app should not connect as a sysadmin or db_owner – it might just have execute on a set of stored procs. If the app needs read/write on certain tables, grant exactly those. Ensure it does not have rights to other databases on the same server that it doesn’t use. Also if multiple apps use the same DB server, they should have separate logins; avoid one login being shared by different apps unless absolutely necessary. This segmentation limits the impact if one app is compromised (it can’t access all data, only its own). 
+
+- **Secure Connection Strings:** If the application connection strings (which include DB credentials for SQL logins) are stored in config files, verify they are protected. E.g., in .NET apps, `web.config` connection strings can be encrypted using the data protection API. Or in cloud deployments, secrets can be stored in a secure store rather than plaintext. Hard-coded credentials in code are risky. If Windows Authentication is used by the app, even better (it uses integrated security, so no credential secret to steal from config).
+
+- **Input Handling and Query Timeouts:** Ensure the application imposes input validation on any data that will be used in queries. This extends beyond preventing injection – it also ensures that very expensive queries aren’t triggered by malicious inputs (which could be a form of DoS against the database). For example, sending a huge string to search might cause table scan. Rate limiting at the app or query timeouts can prevent a single user from hogging DB resources. These are performance security considerations.
+
+- **Error Handling:** Check that database errors are not exposed to end users. The application should catch SQL errors and return generic messages. Exposing error details (like an ODBC error with table names) can aid attackers in recon. It’s part of secure coding to handle exceptions gracefully.
+
+- **Data Exposure through Apps:** Ensure that applications don’t circumvent database security. For instance, if an app runs as a high-privilege account and does all authorization in code, if that code has a flaw, a user might extract more data. It’s often better to enforce some security in the database (like using stored procedures with internal checks, or views that filter data) in addition to app logic. If applicable, verify usage of things like **row-level security** in combination with app user context (e.g., using `SESSION_CONTEXT` or app-supplied user identifiers) to double-enforce multi-tenant isolation.
+
+- **App-DB Encryption:** Confirm that data traveling between the app and database is encrypted. This overlaps with the earlier point on forcing TLS for SQL connections (Section 4). If TLS is not forced, check the client connection string in the app – it should ideally have `Encrypt=True;TrustServerCertificate=False` (or properly handle cert validation). Modern .NET data providers default to encrypt true as of recent versions. If any custom or legacy app doesn’t encrypt traffic, an attacker on the network could sniff data. This is critical for compliance (PCI requires encryption of card data in transit, which includes app-to-DB if not in a secure LAN, and GDPR cares about personal data in transit as well).
+
+- **Audit Application Use of DB:** If possible, correlate some DB audit logs with application usage. For instance, every application user action may correspond to a DB login or a specific account’s queries. Ensure that there’s enough logging at the app level to tie a DB change to an end-user or at least an app-level event. This can be outside DB audit (application logs), but important for accountability. If the application doesn’t log its actions (like which user triggered an update), the DB audit might only show “appuser updated record X” without knowing which human was behind it. Encourage aligning app logs with DB logs for a full picture.
+
+**Mappings to Standards – Application Security (in DB context):**
+
+- **NIST SP 800-53:** SA-15 (Development process, perhaps including securing APIs to the DB), SI-10 (Input validation, which we applied in SPs but also app inputs). Also SC-8 (encrypted comms) again for app to DB communication.
+- **ISO 27001:** Secure development and system acquisition controls (Annex A has controls ensuring security is built into applications). Also A.14 in 2013 was about security in development.
+- **PCI DSS:** Requirement 6 is all about secure development. 6.2.3 in v4.0 highlights addressing common vulnerabilities like injection. PCI also specifically calls out not using production data in test, etc., but in context of app using DB, the main thing is avoid injection and use least privilege accounts. Our checks help ensure compliance with PCI 6.2.5 (database queries use least privileges, though not explicitly stated, it’s implied in separation of application and DB duties).
+- **OWASP Top 10:** Though not a formal standard in our list, injection flaws are #1 in OWASP Top 10; broken access control also. Our review touches both as they relate to the DB. Citing OWASP can be done in recommendations.
+
+- **GDPR/CCPA:** If an application fails to secure the data it retrieves (e.g., dumps too much PII without need or allows unauthorized queries), that is an issue. GDPR Art.25 (data protection by design) expects that applications accessing personal data are designed securely so that by default only necessary data is accessed and only necessary persons can access it. Ensuring the app uses least privilege queries and properly restricts results is part of that principle.
+
+In conclusion, while the primary focus is the database, the **application security review ensures the front door to the database (the apps) aren’t undermining all the backend security**. We provide recommendations to developers as needed, since a secure DB with an insecure app can still lead to data breach.
+
+## 15. Performance and Capacity Review
+
+While performance may seem out of place in a security audit, it is relevant in terms of **availability** (part of security’s CIA triad) and can highlight misconfigurations (e.g., a very high resource usage might indicate a malicious process or insufficient capacity leading to downtime). Thus, we include a high-level performance review:
+
+- **Resource Utilization Baseline:** Review current metrics for CPU, memory, and storage utilization on the SQL Server. If the server is consistently running near capacity (e.g., CPU > 80% or memory pressure high), it has less headroom to handle load spikes or brute force attempts (which themselves can be denial-of-service). A severely overburdened server might fail to log audit entries or enforce security if it becomes unresponsive. Note any bottlenecks and whether they’re being addressed. Sometimes enabling certain security features (like auditing or encryption) adds overhead; ensuring adequate resources mitigates any trade-off between security and performance.
+
+- **Index and Query Performance:** Though detailed tuning is beyond scope, spot-check if there are any glaring issues like missing indexes causing table scans. A malicious or accidental heavy query can lock up tables – proper indexing and query optimization reduce this risk. If a particular table (especially security-relevant ones like an audit log table) is poorly indexed, it might cause slowdowns or discourage keeping auditing on. Ensure maintenance like index rebuilds or stats updates are happening (perhaps via scheduled jobs).
+
+- **Deadlocks or Errors:** Check if the SQL Server error logs (or Extended Events if configured) show frequent deadlocks or memory dumps. Frequent deadlocks might indicate a poorly designed application or queries that could escalate into bigger problems under high load. Memory dumps could indicate software bugs (perhaps fixed by patches, linking back to patch management). If these are present, they should be investigated; they could be normal, but they could also be triggered by attempts to exploit (though rare, certain exploits might crash the server).
+
+- **Capacity Planning:** Determine if there’s a capacity plan. For example, if data growth is significant, will the database have enough disk space and memory in the coming year? Running out of disk space can cause a crash (which is a security availability incident). Ensure autogrowth settings on databases are reasonable and that there’s monitoring for disk space. If the database is near max size of the instance (for Express editions) or storage, note it.
+
+- **High Availability Performance:** If using AGs or replication, monitor their performance – e.g., latency between primary and secondary. If a sync replica is far behind or causing slow commits, that could impact availability (timing out transactions). Ensure the network and I/O performance support the HA design.
+
+- **Backups and Maintenance Impact:** Check that backups, checkDB, or other maintenance jobs are tuned not to excessively impact performance (often they’re scheduled in off-hours). If they overlap with production load and cause slowdowns, consider adjusting. This is indirectly security – if maintenance is causing outages or slow queries, someone might turn off maintenance to fix performance, which then risks integrity (e.g., no DBCC CHECKDB means corruption might go unnoticed). So balance is needed.
+
+- **Use of New Features for Performance:** SQL 2019+ introduced features like **Intelligent Query Processing** and **Accelerated Database Recovery (ADR)** that improve performance and availability (ADR helps with faster crash recovery to reduce downtime). Confirm if ADR is enabled (it’s on by default in 2019 for new databases, optional for upgraded ones). It can reduce long recovery times after failover or crash, contributing to availability. If not enabled and the environment could benefit, suggest evaluating it.
+
+In essence, this section’s aim in the audit report is to ensure that **security controls are not causing unacceptable performance issues** and that the system’s performance posture does not create security risks. If we identify that enabling a certain audit caused a 30% performance overhead, we might recommend infrastructure upgrade or tuning rather than disabling the audit. Conversely, if the system is so strained that, for example, audit log collection can’t keep up, that’s a problem.
+
+**Mappings to Standards – Performance/Availability:**
+
+- **NIST SP 800-53:** Relates to SA-4 (Capacity planning) and SC-5 (Denial of Service Protection) – ensuring the system can handle expected load. Also CP-2 (Contingency planning) addresses capacity indirectly.
+- **ISO 27001:** Emphasizes availability. Control relating to capacity (A.12.1.3 in old ISO was capacity management).
+- **GDPR:** As noted, availability is one of the required safeguards ([Art. 32 GDPR – Security of processing - General Data Protection Regulation (GDPR)](https://gdpr-info.eu/art-32-gdpr/#:~:text=1,account%20shall%20be%20taken%20in)). If a database consistently performs poorly or crashes, that could be considered failing to ensure “resilience of processing systems” under Art.32 ([Art. 32 GDPR – Security of processing - General Data Protection Regulation (GDPR)](https://gdpr-info.eu/art-32-gdpr/#:~:text=1,account%20shall%20be%20taken%20in)).
+- **PCI DSS:** Has requirements for continuity of business, but nothing explicit on performance. However, they do require that security measures should not be removed or reduced due to performance – instead the system should be capable enough (this is more an implicit expectation).
+
+Our audit might not deeply tune the DB, but by highlighting any major performance concerns, we ensure that **security and performance are balanced**. This ensures the database can reliably serve users and security monitoring simultaneously.
+
+## 16. Compliance Verification
+
+This section maps the findings and controls of the audit to the **external compliance requirements** (CIS, NIST, ISO, GDPR, CCPA, PCI-DSS) that the organization is subject to. It ensures that every audit step aligns with at least one framework control, and highlights any gaps in compliance.
+
+- **CIS Benchmarks Mapping:** Each technical check from sections 4 through 10 can be explicitly mapped to the CIS Microsoft SQL Server Benchmarks for 2019/2022. For instance, when we checked “CHECK_EXPIRATION = ON” for SQL logins, that aligns with CIS benchmark item 4.2 ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=4,Engine)). In the audit report, we provide an appendix or table (some provided in-line above) showing this mapping. The organization can thus claim compliance with CIS Level 1 benchmarks if all such items are passed. Using CIS as a baseline is beneficial as it’s widely recognized and provides a solid foundation for security ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=,Reporting)).
+
+- **NIST SP 800-53 (Rev. 5) Mapping:** The audit framework maps each domain to NIST controls (as we have noted in each section). For example, Account Management (AC-2) is covered by our reviews of user accounts, Least Privilege (AC-6) by our roles review, etc. In a comprehensive table, the report could list NIST families and specific controls, indicating how the audit addressed them. This is useful if the organization’s parent compliance requirement is something like FedRAMP or FISMA (where NIST controls are key). We ensure that technical controls like encryption (SC-28), logging (AU-2, AU-6), incident response (IR-4) and others are all met by corresponding checks ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=1.%20Data%20Protection%20Regulations%20,SOX%20for%20financial%20data%2C%20etc)).
+
+- **ISO/IEC 27001:2022 Alignment:** ISO 27001 is a high-level standard focusing on the existence of controls and policies. Our audit evidences many of the Annex A controls: e.g., A.5 (access control policy) is evidenced by our access control review, A.8 (technological controls like secure configuration, malware protection – our config review and patching cover that), A.13 (communications security – our encryption of data in transit covers that), A.14 (system acquisition, development – our app and SP review covers secure development), A.18 (continuity – our backup/DR covers that). We map our findings to relevant ISO controls to demonstrate coverage ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=1.%20Data%20Protection%20Regulations%20,SOX%20for%20financial%20data%2C%20etc)). This helps in ISO 27001 certification efforts, particularly in creating or updating the Statement of Applicability (SoA) – the audit shows which Annex A controls are implemented or if any are lacking.
+
+- **GDPR and Data Privacy:** We explicitly verify compliance with data protection regulations during the audit ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=1.%20Data%20Protection%20Regulations%20,Audit%20Trails)). For GDPR: we check data encryption (Art.32), pseudonymization if used, the ability to restore data (Art.32), and that access to personal data is restricted (Art.25, 32). If personal data is in the database, we ensure things like the right to erasure and access can be facilitated (e.g., can they delete a user’s data from all relevant tables easily? This might be more process, but if we see a scattered design, we note it). Also check data retention settings – e.g., if the DB has old data beyond retention policy, flag that (though deletion policy is more a governance issue, the DBA may need to implement purging). For CCPA: verify that there’s controls to segregate and protect personal information of California residents, and that if needed, data can be identified and deleted for compliance. While our audit is mostly technical, we ensure the **security aspects of privacy** (confidentiality, access control, breach prevention) are strong ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=1.%20Data%20Protection%20Regulations%20,Audit%20Trails)). Any shortcomings (e.g., unencrypted sensitive personal data or overly broad access) would be call-outs that also mean non-compliance with privacy laws’ security requirements.
+
+- **PCI-DSS (if applicable):** For environments storing payment data, we map each relevant requirement. For example, Requirement 3 (protect stored cardholder data) – our encryption and access controls address that. Requirement 8 (unique IDs, secure auth) – our authentication review covers it. Requirement 10 (logging) – our audit trail section covers it. We ensure that any specific PCI technical settings are met (like hashing of stored passwords if any, or truncation of card numbers if the app does it – though this might be more on the app side, but DB may enforce it via column data types or masking). If the audit finds any area where PCI requirements are not met, we highlight it (since PCI compliance is usually a yes/no matter and crucial for avoiding fines or penalties). If the environment is not in PCI scope, we note that, but still apply its best practices as generally good measures.
+
+- **Industry-Specific Controls:** Apart from the above, if there are other frameworks (like HIPAA for health data, SOX for financial reporting databases), the framework can be extended. For instance, HIPAA’s Security Rule has overlaps (encryption, access control, audit logs – all covered). Our framework is meant to be internationally applicable, so it is flexible to map to those as well ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=,Data%20Retention%20Policies)). In this audit, we concentrate on the ones requested, but the methodology is adaptable.
+
+In the audit report, this section often includes **tables or matrices mapping each audit item to the standards** (some sample mapping tables have been embedded in earlier sections for illustration). This makes it clear how the audit ensures compliance. For example, a snippet might show:
+
+- *Encryption of data at rest:* Maps to GDPR Art.32(1)(a), PCI DSS Req. 3, NIST SC-28, ISO A.10.
+- *Audit logging:* Maps to NIST AU-2, ISO logging control, PCI Req.10, etc.
+- *User access reviews:* Maps to ISO A.9.2, NIST AC-2, PCI Req.7 & 8, etc.
+
+By providing these mappings, we help the organization in **demonstrating compliance to auditors and regulators**. The framework essentially doubles as a compliance checklist across multiple standards.
+
+Additionally, we verify that **documentation and policies** exist for these areas (though this is more of a process audit item, not purely technical). For instance, is there a written password policy aligning with what we checked? Is there a documented data retention policy (and did we see it being followed)? Having the technical controls is one thing; having the policy to back them is another (important for ISO certification).
+
+To conclude this section, we emphasize that the MSSQL security audit framework **aligns with and supports compliance obligations globally**, giving confidence that adherence to it means adherence to the major requirements in security and data protection ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=16)). Any gaps identified should be remediated to achieve full compliance.
+
+## 17. Report and Recommendations
+
+After completing the audit steps, the final deliverable is a **comprehensive report** that documents findings and provides actionable recommendations. This section outlines the structure of the report and how to interpret the results:
+
+- **Summary of Findings:** Begin the report with an executive summary that highlights the overall security posture of the SQL Server environment ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=1.%20Summary%20of%20Findings%20,Future%20Considerations)). This includes a high-level risk rating (e.g., High/Moderate/Low risk environment) and key themes (e.g., “Good compliance with CIS benchmarks, but improvement needed in encryption and patching”). Summarize the number of findings in each risk category and any critical issues that need immediate attention (for example, “sa account enabled with weak password – Critical Risk”). This summary is written for management and should convey whether the SQL environment is compliant and secure or if there are serious concerns.
+
+- **Detailed Findings and Analysis:** For each finding, provide a clear description and analysis ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=1.%20Summary%20of%20Findings%20,Future%20Considerations)) ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=2.%20Detailed%20Analysis%20,Appendices)). Include: 
+  - *What* the issue is (e.g., “SQL Server instance is using the default port 1433 and is visible to the entire internal network”).
+  - *Why it’s a problem* – the risk or impact (e.g., “This can make it easier for an attacker to target the server; it does not in itself grant access, but it increases visibility ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=Rationale%3A%20Using%20%20%20a,application)). Combined with other vulnerabilities, it could facilitate unauthorized access.” Or “Leaving ‘sa’ enabled could allow brute-force attacks ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=principal_id%3D1%20and%20%20%20,principal)).”). If it maps to a compliance failure, note that (e.g., “Violates CIS 2.11 and PCI requirement 2”).
+  - *Evidence* – reference the data collected (like configuration values or log extracts) and include citations to standards or best practices (we have preserved references like  ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=The%20%20%20%20,principal)) in the narrative to support the rationale).
+  - *Severity* – assign a risk level (Critical/High/Medium/Low) based on likelihood and impact. For instance, missing patches with known exploits = High, a minor deviation from CIS that has low exploitability = Low.
+
+- **Recommendations:** Following each finding, provide a specific recommendation for remediation ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=,configuration%20outputs%2C%20or%20references%20that)). For example, “Disable the `sa` login and create individual admin accounts for DBAs ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=The%20%20%20%20,principal)),” or “Enable Transparent Data Encryption on Database X using AES-256 and secure the keys ([Microsoft Word - CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.docx](https://www.itsecure.hu/wp-content/uploads/2023/12/CIS_Microsoft_SQL_Server_2019_Benchmark_v1.2.0.pdf#:~:text=4%20%20%20%20,71)).” Where possible, give a reference to how to implement (maybe pointing to Microsoft documentation or including brief steps). Also mention if the fix might have dependencies or requires downtime/testing. Prioritize recommendations if multiple ways to solve an issue exist. In some cases, offer alternative solutions if the ideal fix cannot be done due to constraints (e.g., if an older application requires SQL Auth mode, mitigate by strong passwords and IP restrictions if Windows-only auth isn’t feasible).
+
+- **Prioritization and Roadmap:** In addition to per-finding recommendations, include a prioritized roadmap. Identify quick wins (e.g., “Enable login auditing – easy change, no downtime”) versus longer projects (“Implement Always Encrypted for sensitive columns – requires application changes, plan over Q3”). This helps the organization plan resources. Also highlight dependencies – e.g., “Before enabling force encryption, ensure all clients have the updated drivers to handle encryption or this may disrupt connectivity.”
+
+- **Future Considerations:** Mention any **emerging trends or upcoming changes** that the organization should be aware of ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=4.%20Future%20Considerations%20,references%20that%20support%20the%20analysis)). For example, if a new version of SQL Server or a new service pack is on the horizon that will introduce important security features, note that (SQL Server vNext, etc.). Or if new regulatory changes are expected (say, a new privacy law in another region) which might impose additional requirements on database security, alert them here. This forward-looking part ensures the framework remains a living process, not a one-time checklist ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=Final%20Notes)).
+
+- **Compliance Status:** State the compliance status explicitly – e.g., “As of this audit, the SQL Server environment is **95% compliant** with CIS Benchmark recommendations (Level 1). Non-compliant items are... [list top ones].” Do similar for PCI if relevant: “Ready for PCI DSS audit with minor remediation needed on logging settings,” etc. This helps stakeholders understand if they would pass an actual compliance audit or need remediation first.
+
+- **Management Response:** Optionally, the report might leave space for management responses or action plans for each finding (some audit frameworks include this to track that management acknowledges and plans to remediate or accepts the risk).
+
+The **Report and Recommendations** section should be written in a professional, clear manner, avoiding overly technical jargon in the summary and using concise language in findings. The use of tables for mapping (as we have done) and possibly tables for listing findings (with columns: Finding, Risk, Recommendation, Owner, Target Date) can be very effective in communication.
+
+Finally, the report should reiterate the value of addressing these issues: improved security, compliance, and peace of mind that the databases (which often house crown-jewel data) are well-protected. It might also mention that following these recommendations will help in the next audit cycle, where continuous improvement is expected.
+
+## 18. Appendix
+
+The appendix provides supplementary information to support the audit findings and recommendations. It typically includes:
+
+- **Technical Reference Data:** Detailed outputs that were collected during the audit. For example, the raw listing of server configuration settings (sp_configure output), a list of all logins and their roles, sample extracts from audit logs, etc. This evidence backs up the findings. Including it in the appendix keeps the main report cleaner while allowing deep-dive for those interested.
+
+- **Control Mapping Tables:** Extended versions of the mapping tables we provided in sections above. For instance, a full matrix mapping every CIS control to the audit result (“compliant/non-compliant”), or mapping each NIST control to where in the report it’s addressed. This could help compliance officers quickly see coverage. We might also include a cross-walk table: e.g., *Findings vs. Standards*, showing which findings correspond to which compliance items. Since we have many standards, a multi-mapping might be complex, but at least separate mapping tables per framework could be here.
+
+- **Sample Scripts and Queries:** If we used any custom queries or scripts (like a PowerShell script to fetch all user permissions, or T-SQL to check configuration), provide them here for transparency and for the client to possibly reuse in continuous monitoring ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=Use%20this%20section%20to%20provide,supplementary%20materials%2C%20such%20as)). For example, a script to disable a set of risky configuration options or to regularly script out permissions for review.
+
+- **Policy Excerpts:** If relevant, excerpts from company policies or standards can be included to show what we referenced for internal compliance. Also, if the organization has a database security policy, we can align our findings with it in the appendix.
+
+- **Additional Best Practice References:** Perhaps include references or links to external best practice guides (Microsoft’s documentation, CIS benchmark link, NIST guidelines). In a report, footnotes or endnotes might list sources like MS Learn articles on encryption or CIS benchmark download page, etc., some of which we have cited in-line (and would be listed properly if this were a formal report).
+
+- **Glossary:** Definitions of any technical terms or acronyms used, for completeness (e.g., define Always Encrypted, TDE, etc., especially if the report is read by non-DBAs).
+
+The appendix ensures the main report sections remain focused and readable, while all supporting detail is available for audit traceability and for technical teams who will do the remediation.
+
+## 19. Approval and Signoff
+
+This section marks the formal conclusion of the audit process. It includes:
+
+- **Acknowledgment:** A statement that the audit findings and recommendations have been reviewed with the relevant stakeholders ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=Conclude%20the%20audit%20with%20formal,This%20should%20include)). For example: “We, the undersigned, acknowledge that the findings of the MSSQL Security Audit dated [Date] have been presented and discussed. We understand the risks identified and commit to addressing the recommendations as outlined.”
+
+- **Sign-off:** Signatures (or electronic approval) from key parties ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=19)). This typically includes the Database Administrator lead or Manager, the Information Security Officer or equivalent, and possibly an IT executive (CIO/CTO) or the system owner. For compliance, if an external audit, the auditor might sign to certify the report. In an internal audit, the auditee (IT team) signs to accept the results.
+
+- **Date and Next Steps:** The date of sign-off and an agreed timeline for remediation or next audit ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=,up%20audit)). For example, “Target date for closure of high-risk findings: 60 days from report sign-off (by [Date]). Next full audit scheduled for Q2 2026, with interim review in 6 months.” This sets expectations for follow-up, aligning with a continuous improvement approach.
+
+Having this formal sign-off is important for compliance records (demonstrates management’s awareness and acceptance). It also helps drive accountability for implementing the fixes. The security audit is not complete until management has agreed to act on it.
 
 ---
 
 ### Final Notes
-- **Continuous Improvement**: Security and compliance are ongoing processes. Regular re-assessments ensure evolving threats are addressed.  
-- **Leverage the Latest SQL Server 2022 Features**: Use Always Encrypted with secure enclaves, ledger tables for tamper-evident records, and advanced failover options to enhance resilience.  
-- **Automation and Tooling**: Employ both built-in SQL Server functions (e.g., Extended Events, Query Store) and third-party scripts or solutions to streamline auditing and performance tuning.  
 
-By adhering to this updated MSSQL Security Check Framework, organizations can systematically safeguard their SQL Server environments, ensure compliance, and maintain optimal database performance in the face of constantly evolving threats and requirements.
+By following this **International MSSQL Security Audit Framework**, organizations can systematically secure their SQL Server instances and align with global best practices ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=Final%20Notes)). The framework is comprehensive, covering technical hardening, operational processes, and mappings to major standards, thus serving as a one-stop reference for SQL Server security and compliance. 
+
+It is important to remember that security is an ongoing process – the threat landscape evolves, and so must the controls. New features in SQL Server (like those in 2022) provide enhanced security capabilities (e.g., secure enclaves, ledger) which should be leveraged to mitigate modern threats ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=,streamline%20auditing%20and%20performance%20tuning)). We recommend integrating this framework into the organization’s IT governance, so that whenever a new SQL Server is deployed or an existing one upgraded, these checks and mappings are revisited.
+
+The outcome of this audit should not only be a point-in-time report, but a **baseline for continuous monitoring**. Tools and automation can be employed for periodic checks (for example, PowerShell scripts or Microsoft’s Azure Defender can continuously assess configurations). This ensures that security baseline drift is detected and corrected between audits ([GitHub - exfil0/MSSQLSEC: MSSQLSEC is a comprehensive toolkit, incorporating advanced tools and methodologies, specifically designed for performing in-depth audits on MSSQL databases. It is more than just a static set of tools; it's a dynamic framework that continuously evolves to meet the demands of the changing landscape of database security and audit requirements.](https://github.com/exfil0/MSSQLSEC#:~:text=,streamline%20auditing%20and%20performance%20tuning)).
+
+In conclusion, the audit has provided a detailed look at the Microsoft SQL Server environment, uncovering strengths and weaknesses. By addressing the recommendations and maintaining vigilance, the organization will significantly enhance the security of its databases, safeguard sensitive data against breaches, and meet the stringent requirements of international standards and regulations.
+
+
